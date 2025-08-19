@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Fishly-AI — Click Fishing</title>
+<title>Fishly-AI — Click Fishing (with Sprites)</title>
 <style>
   :root{
     --bg:#0a2239; --panel:#0f2d4a; --ink:#e8f1f2; --muted:#9fb3c8;
@@ -17,49 +17,50 @@
   header small{color:var(--muted)}
   .wrap{max-width:1100px;margin:0 auto;padding:12px}
 
-  .game{
-    display:grid;gap:12px;
-    grid-template-columns: 1.4fr 1fr;
-  }
+  .game{display:grid;gap:12px;grid-template-columns: 1.4fr 1fr;}
   @media (max-width:920px){ .game{grid-template-columns:1fr} }
 
   .scene{
     background:
       radial-gradient(ellipse at 50% 20%, #0c3050 0%, transparent 60%),
       linear-gradient(180deg, #0b2a45 0%, #0a2239 100%);
-    border:1px solid #0f3659;border-radius:12px;overflow:hidden;position:relative;min-height:420px;
+    border:1px solid #0f3659;border-radius:12px;overflow:hidden;position:relative;min-height:440px;
   }
-  .water{
-    position:absolute;left:0;right:0;bottom:0;top:110px;
-    background:
+  .water{position:absolute;left:0;right:0;bottom:0;top:120px;background:
       linear-gradient(180deg,var(--waterTop) 0%, var(--waterMid) 40%, var(--waterDeep) 100%),
-      repeating-linear-gradient(0deg,rgba(255,255,255,.06) 0 2px,transparent 2px 6px);
-  }
-  .shore{
-    position:absolute;left:0;right:0;top:0;height:110px;
-    background:
+      repeating-linear-gradient(0deg,rgba(255,255,255,.06) 0 2px,transparent 2px 6px);}
+  .shore{position:absolute;left:0;right:0;top:0;height:120px;background:
       linear-gradient(180deg,#0e3b60 0%,#0b2f4e 65%,transparent 66% 100%),
-      radial-gradient(ellipse at 70% 110%, #0c2740 0%, transparent 60%);
-  }
-  .dock{
-    position:absolute;left:18px;top:65px;width:140px;height:16px;background:#694b33;border:1px solid #5a3e2a;border-radius:3px;
-    box-shadow:0 2px 0 rgba(0,0,0,.4) inset;
-  }
-  .avatar{
-    position:absolute;left:26px;top:28px;width:46px;height:46px;border-radius:50%;
+      radial-gradient(ellipse at 70% 110%, #0c2740 0%, transparent 60%);}
+  .dock{position:absolute;left:18px;top:75px;width:140px;height:16px;background:#694b33;border:1px solid #5a3e2a;border-radius:3px;box-shadow:0 2px 0 rgba(0,0,0,.4) inset;}
+  .avatar{position:absolute;left:26px;top:38px;width:46px;height:46px;border-radius:50%;
     background: radial-gradient(circle at 30% 30%, #e6f6ff 0%, #9fd0f1 55%, #5aa7d8 100%);
-    border:2px solid #2a628f; box-shadow:0 2px 8px rgba(0,0,0,.4);
-  }
-  .float{
-    position:absolute; left:50%; top:170px; width:10px; height:10px; margin-left:-5px; border-radius:50%;
-    background:#ff4757; border:2px solid #fff;
-    animation: bob 2.2s ease-in-out infinite;
-  }
+    border:2px solid #2a628f; box-shadow:0 2px 8px rgba(0,0,0,.4);}
+  .float{position:absolute; left:50%; top:180px; width:10px; height:10px; margin-left:-5px; border-radius:50%;
+    background:#ff4757; border:2px solid #fff; animation: bob 2.2s ease-in-out infinite;}
   @keyframes bob { 0%{transform:translateY(-3px)} 50%{transform:translateY(3px)} 100%{transform:translateY(-3px)} }
 
-  .panel{
-    background:rgba(9,31,51,.6);border:1px solid #0f3659;border-radius:12px;padding:10px
+  /* SPRITES LAYER */
+  .sprite-layer{position:absolute; left:0; right:0; top:120px; bottom:0; pointer-events:none;}
+  .popfish{position:absolute; width:120px; height:60px; transform:translate(-50%,-50%) scale(.85); opacity:0;
+    animation: rise 1.1s ease-out forwards;}
+  @keyframes rise{
+    0%{opacity:0; transform:translate(-50%, -10px) scale(.7) rotate(-6deg)}
+    15%{opacity:1; transform:translate(-50%, -6px) scale(1) rotate(0deg)}
+    70%{opacity:1; transform:translate(-50%, -46px) scale(1) rotate(0deg)}
+    100%{opacity:0; transform:translate(-50%, -70px) scale(.95) rotate(4deg)}
   }
+  /* tiny splash */
+  .splash{position:absolute; width:34px; height:34px; transform:translate(-50%,-50%); opacity:.0; border-radius:50%;
+    box-shadow: 0 0 0 0 rgba(255,255,255,.85) inset;
+    animation: splash .6s ease-out forwards;}
+  @keyframes splash{
+    0%{opacity:0; transform:translate(-50%,-50%) scale(.2)}
+    20%{opacity:.9}
+    100%{opacity:0; transform:translate(-50%,-50%) scale(1.8)}
+  }
+
+  .panel{background:rgba(9,31,51,.6);border:1px solid #0f3659;border-radius:12px;padding:10px}
   .panel h2{margin:0 0 8px;font-size:16px}
   .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .btn{background:var(--accent);border:none;border-radius:10px;color:#07202e;font-weight:700;padding:9px 12px;cursor:pointer}
@@ -84,11 +85,9 @@
   .store .item{display:flex;gap:6px;align-items:center;justify-content:space-between;margin:6px 0}
   .tag{font-size:.75rem;color:#a8d7ff;border:1px solid #2b6fa0;background:#0d3553;padding:2px 6px;border-radius:999px}
 
-  .toast{
-    position:fixed;left:50%;transform:translateX(-50%);bottom:16px;background:#0f2d4a;border:1px solid #134668;color:#e6f7ff;
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;background:#0f2d4a;border:1px solid #134668;color:#e6f7ff;
     padding:8px 12px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.35);z-index:10;opacity:0;pointer-events:none;
-    transition:opacity .25s ease, transform .25s ease;
-  }
+    transition:opacity .25s ease, transform .25s ease;}
   .toast.show{opacity:1;transform:translate(-50%, -6px)}
   .topbar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px}
   .linkish{color:#7fdcff;cursor:pointer;text-decoration:underline}
@@ -97,7 +96,7 @@
 <body>
 <header>
   <h1>Fishly-AI — Click Fishing</h1>
-  <small>Cast • Time the meter • Sell fish • Upgrade gear • Autosaves</small>
+  <small>Cast • Time the meter • Sell fish • Upgrade gear • Autosaves • Now with sprites 🐟</small>
 </header>
 
 <div class="wrap">
@@ -123,6 +122,118 @@
       <div class="dock"></div>
       <div class="avatar" title="You"></div>
       <div class="float" id="float"></div>
+
+      <!-- SPRITES: inline SVG symbol sheet -->
+      <svg width="0" height="0" style="position:absolute">
+        <defs>
+          <!-- Generic fish template: body + tail; we recolor per species -->
+          <symbol id="fish-bluegill" viewBox="0 0 120 60">
+            <g>
+              <ellipse cx="55" cy="30" rx="32" ry="20" fill="#63a46c" stroke="#2c6b35" stroke-width="2"/>
+              <polygon points="20,30 5,22 5,38" fill="#2c6b35"/>
+              <circle cx="72" cy="24" r="3" fill="#111"/>
+              <path d="M38 18 Q55 10 72 18" fill="none" stroke="#88c886" stroke-width="2"/>
+              <path d="M38 42 Q55 50 72 42" fill="none" stroke="#88c886" stroke-width="2"/>
+              <circle cx="70" cy="30" r="2" fill="#fff"/>
+            </g>
+          </symbol>
+
+          <symbol id="fish-crappie" viewBox="0 0 120 60">
+            <g>
+              <ellipse cx="55" cy="30" rx="34" ry="18" fill="#cfd3d6" stroke="#7a8b93" stroke-width="2"/>
+              <polygon points="20,30 4,22 4,38" fill="#7a8b93"/>
+              <circle cx="72" cy="24" r="3" fill="#111"/>
+              <path d="M30 22 l10 4 l-10 4 l10 4 l-10 4" stroke="#8fa2a9" stroke-width="2"/>
+            </g>
+          </symbol>
+
+          <symbol id="fish-perch" viewBox="0 0 120 60">
+            <g>
+              <ellipse cx="55" cy="30" rx="32" ry="18" fill="#f2c84b" stroke="#b48a1f" stroke-width="2"/>
+              <polygon points="20,30 6,22 6,38" fill="#b48a1f"/>
+              <rect x="34" y="14" width="6" height="32" fill="#2a4b5f" opacity="0.7"/>
+              <rect x="46" y="14" width="6" height="32" fill="#2a4b5f" opacity="0.7"/>
+              <rect x="58" y="14" width="6" height="32" fill="#2a4b5f" opacity="0.7"/>
+              <circle cx="72" cy="24" r="3" fill="#111"/>
+            </g>
+          </symbol>
+
+          <symbol id="fish-largemouth" viewBox="0 0 120 60">
+            <g>
+              <ellipse cx="56" cy="30" rx="36" ry="18" fill="#5aa870" stroke="#2d6a43" stroke-width="2"/>
+              <polygon points="20,30 4,22 4,38" fill="#2d6a43"/>
+              <path d="M78 25 q10 5 10 5 q-10 5 -10 5" fill="#fff" opacity=".8"/>
+              <circle cx="75" cy="24" r="3" fill="#111"/>
+              <path d="M35 18 Q56 10 77 18" fill="none" stroke="#86c99b" stroke-width="2"/>
+              <path d="M35 42 Q56 50 77 42" fill="none" stroke="#86c99b" stroke-width="2"/>
+            </g>
+          </symbol>
+
+          <symbol id="fish-smallmouth" viewBox="0 0 120 60">
+            <g>
+              <ellipse cx="56" cy="30" rx="34" ry="18" fill="#9a7b50" stroke="#5e4a33" stroke-width="2"/>
+              <polygon points="20,30 6,22 6,38" fill="#5e4a33"/>
+              <circle cx="74" cy="24" r="3" fill="#111"/>
+              <path d="M38 18 Q56 12 74 18" stroke="#b8966a" stroke-width="2" fill="none"/>
+              <path d="M38 42 Q56 48 74 42" stroke="#b8966a" stroke-width="2" fill="none"/>
+            </g>
+          </symbol>
+
+          <symbol id="fish-walleye" viewBox="0 0 120 60">
+            <g>
+              <ellipse cx="60" cy="30" rx="38" ry="16" fill="#9bb17a" stroke="#5b6a47" stroke-width="2"/>
+              <polygon points="24,30 6,22 6,38" fill="#5b6a47"/>
+              <circle cx="80" cy="24" r="3" fill="#fff"/>
+              <circle cx="80" cy="24" r="1.6" fill="#333"/>
+              <path d="M40 20 Q60 12 80 20" stroke="#c4d4ad" stroke-width="2" fill="none"/>
+            </g>
+          </symbol>
+
+          <symbol id="fish-catfish" viewBox="0 0 120 60">
+            <g>
+              <ellipse cx="58" cy="32" rx="36" ry="14" fill="#9aa3ad" stroke="#55616b" stroke-width="2"/>
+              <polygon points="26,32 8,26 8,38" fill="#55616b"/>
+              <circle cx="78" cy="28" r="3" fill="#212a30"/>
+              <!-- whiskers -->
+              <path d="M82 30 q10 3 16 0" stroke="#ced7df" stroke-width="2" fill="none"/>
+              <path d="M82 32 q10 5 16 6" stroke="#ced7df" stroke-width="2" fill="none"/>
+            </g>
+          </symbol>
+
+          <symbol id="fish-pike" viewBox="0 0 140 60">
+            <g>
+              <ellipse cx="68" cy="30" rx="48" ry="14" fill="#3d6f4d" stroke="#214531" stroke-width="2"/>
+              <polygon points="28,30 6,22 6,38" fill="#214531"/>
+              <circle cx="95" cy="24" r="3" fill="#101"/>
+              <path d="M40 24 l10 4 l-10 4 l10 4 l-10 4" stroke="#7fb391" stroke-width="2"/>
+            </g>
+          </symbol>
+
+          <symbol id="fish-muskie" viewBox="0 0 150 60">
+            <g>
+              <ellipse cx="72" cy="30" rx="54" ry="14" fill="#4d7f63" stroke="#294c3a" stroke-width="2"/>
+              <polygon points="28,30 6,22 6,38" fill="#294c3a"/>
+              <circle cx="104" cy="24" r="3" fill="#101"/>
+              <path d="M42 24 l10 4 l-10 4 l10 4 l-10 4" stroke="#97c9a8" stroke-width="2"/>
+            </g>
+          </symbol>
+
+          <symbol id="fish-carp" viewBox="0 0 120 60">
+            <g>
+              <ellipse cx="58" cy="30" rx="36" ry="18" fill="#caa23a" stroke="#8f7422" stroke-width="2"/>
+              <polygon points="22,30 6,22 6,38" fill="#8f7422"/>
+              <circle cx="76" cy="24" r="3" fill="#111"/>
+              <!-- scales hint -->
+              <path d="M40 22 q6 6 12 0 q6 6 12 0" stroke="#edd48a" stroke-width="2" fill="none" opacity=".7"/>
+              <path d="M40 36 q6 6 12 0 q6 6 12 0" stroke="#edd48a" stroke-width="2" fill="none" opacity=".7"/>
+            </g>
+          </symbol>
+        </defs>
+      </svg>
+
+      <!-- layer where caught fish appear -->
+      <div class="sprite-layer" id="spriteLayer" aria-hidden="true"></div>
+
       <div class="water"></div>
 
       <div style="position:absolute;left:12px;right:12px;bottom:12px">
@@ -187,91 +298,57 @@
    DATA & STATE
 ========================= */
 const FISH = [
-  // name, rarity, minW, maxW (lb), baseValue
-  {n:"Bluegill", r:"common",  w:[0.2, 1.2], v:4},
-  {n:"Crappie",  r:"common",  w:[0.5, 1.8], v:5},
-  {n:"Perch",    r:"common",  w:[0.3, 1.5], v:5},
-  {n:"Largemouth Bass", r:"uncommon", w:[1.0, 6.0], v:12},
-  {n:"Smallmouth Bass", r:"uncommon", w:[1.0, 5.0], v:12},
-  {n:"Walleye",  r:"uncommon", w:[1.2, 7.0], v:14},
-  {n:"Channel Catfish", r:"uncommon", w:[1.5, 10.0], v:15},
-  {n:"Northern Pike", r:"rare", w:[3.0, 18.0], v:24},
-  {n:"Muskellunge", r:"epic", w:[8.0, 35.0], v:60},
-  {n:"Common Carp", r:"uncommon", w:[2.0, 18.0], v:10}
+  {n:"Bluegill", r:"common",  w:[0.2, 1.2], v:4,  sprite:"fish-bluegill"},
+  {n:"Crappie",  r:"common",  w:[0.5, 1.8], v:5,  sprite:"fish-crappie"},
+  {n:"Perch",    r:"common",  w:[0.3, 1.5], v:5,  sprite:"fish-perch"},
+  {n:"Largemouth Bass", r:"uncommon", w:[1.0, 6.0], v:12, sprite:"fish-largemouth"},
+  {n:"Smallmouth Bass", r:"uncommon", w:[1.0, 5.0], v:12, sprite:"fish-smallmouth"},
+  {n:"Walleye",  r:"uncommon", w:[1.2, 7.0], v:14, sprite:"fish-walleye"},
+  {n:"Channel Catfish", r:"uncommon", w:[1.5, 10.0], v:15, sprite:"fish-catfish"},
+  {n:"Northern Pike", r:"rare", w:[3.0, 18.0], v:24, sprite:"fish-pike"},
+  {n:"Muskellunge", r:"epic", w:[8.0, 35.0], v:60, sprite:"fish-muskie"},
+  {n:"Common Carp", r:"uncommon", w:[2.0, 18.0], v:10, sprite:"fish-carp"}
 ];
 
-const RARITY_WEIGHT = {
-  common:   1.0,
-  uncommon: 0.45,
-  rare:     0.15,
-  epic:     0.05
-};
+const RARITY_WEIGHT = { common:1.0, uncommon:0.45, rare:0.15, epic:0.05 };
 
 const SFX = {
   on:true,
-  cast:new Audio('data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAA...'), // tiny blank stub (keeps simple)
-  reel:new Audio('data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAA...'),
-  sell:new Audio('data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAA...')
+  cast:new Audio('data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAA'), // stubs
+  reel:new Audio('data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAA'),
+  sell:new Audio('data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAA')
 };
-// (Data URI sounds are stubs above; replace with real tiny wavs if you like.)
 
 const state = {
-  coins: 0,
-  energy: 20,
-  energyMax: 20,
-  rodLv: 1,
-  bucketCap: 6,
-  inv: [],
+  coins: 0, energy: 20, energyMax: 20,
+  rodLv: 1, bucketCap: 6, inv: [],
   baitTurns: 0,
-  casting: false,
-  t: 0, dir: 1, // meter oscillation
-  sweetStart: 0.4,
-  sweetWidth: 0.20
+  casting: false, t: 0, dir: 1,
+  sweetStart: 0.4, sweetWidth: 0.20
 };
 
 const UI = {
-  coins: document.getElementById('coins'),
-  energy: document.getElementById('energy'),
-  rodLv: document.getElementById('rodLv'),
-  rodLv2: document.getElementById('rodLv2'),
-  bucketUsed: document.getElementById('bucketUsed'),
-  bucketCap: document.getElementById('bucketCap'),
-  bucketCap2: document.getElementById('bucketCap2'),
-  baitTurns: document.getElementById('baitTurns'),
-  btnCast: document.getElementById('btnCast'),
-  btnReel: document.getElementById('btnReel'),
-  btnSell: document.getElementById('btnSell'),
-  fill: document.getElementById('fill'),
-  sweet: document.getElementById('sweet'),
-  label: document.getElementById('meterLabel'),
-  status: document.getElementById('status'),
-  invList: document.getElementById('invList'),
-  rodCost: document.getElementById('rodCost'),
-  bucketCost: document.getElementById('bucketCost'),
-  btnRod: document.getElementById('buyRod'),
-  btnBucket: document.getElementById('buyBucket'),
-  btnBait: document.getElementById('buyBait'),
-  toast: document.getElementById('toast'),
-  btnMute: document.getElementById('btnMute'),
-  btnHow: document.getElementById('btnHow'),
-  btnReset: document.getElementById('btnReset')
+  coins: $('#coins'), energy: $('#energy'),
+  rodLv: $('#rodLv'), rodLv2: $('#rodLv2'),
+  bucketUsed: $('#bucketUsed'), bucketCap: $('#bucketCap'), bucketCap2: $('#bucketCap2'),
+  baitTurns: $('#baitTurns'),
+  btnCast: $('#btnCast'), btnReel: $('#btnReel'), btnSell: $('#btnSell'),
+  fill: $('#fill'), sweet: $('#sweet'), label: $('#meterLabel'), status: $('#status'),
+  invList: $('#invList'), rodCost: $('#rodCost'), bucketCost: $('#bucketCost'),
+  btnRod: $('#buyRod'), btnBucket: $('#buyBucket'), btnBait: $('#buyBait'),
+  toast: $('#toast'), btnMute: $('#btnMute'), btnHow: $('#btnHow'), btnReset: $('#btnReset'),
+  spriteLayer: $('#spriteLayer')
 };
 
 /* =========================
    SAVE / LOAD
 ========================= */
-const SAVE_KEY='fishly_click_save_v1';
-function save(){
-  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch{}
-}
+const SAVE_KEY='fishly_click_save_v2';
+function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch{} }
 function load(){
   try{
-    const raw = localStorage.getItem(SAVE_KEY);
-    if(!raw) return;
-    const s = JSON.parse(raw);
-    Object.assign(state, s);
-    // backward safety
-    state.energyMax = 20;
+    const raw = localStorage.getItem(SAVE_KEY); if(!raw) return;
+    const s = JSON.parse(raw); Object.assign(state, s); state.energyMax=20;
   }catch{}
 }
 load();
@@ -279,41 +356,50 @@ load();
 /* =========================
    UTILITIES
 ========================= */
+function $(s){ return document.querySelector(s); }
 function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
 function rnd(a,b){ return a + Math.random()*(b-a); }
-function choiceWeighted(){
-  // build weighted list using rarity + rod & bait bonuses
-  const bonusRare = 0.02 * (state.rodLv-1) + (state.baitTurns>0 ? 0.08 : 0); // +2% per rod level, +8% with bait
-  const weights = FISH.map(f=>{
-    let w = RARITY_WEIGHT[f.r];
-    if(f.r==='uncommon') w += bonusRare*0.6;
-    if(f.r==='rare')     w += bonusRare*0.35;
-    if(f.r==='epic')     w += bonusRare*0.20;
-    return Math.max(0.01, w);
-  });
-  const sum = weights.reduce((a,b)=>a+b,0);
-  let pick = Math.random()*sum;
-  for(let i=0;i<FISH.length;i++){
-    if(pick<weights[i]) return FISH[i];
-    pick -= weights[i];
-  }
-  return FISH[FISH.length-1];
+function toast(msg){ UI.toast.textContent=msg; UI.toast.classList.add('show'); setTimeout(()=>UI.toast.classList.remove('show'),1600); }
+function play(a){ if(SFX.on && a && a.play){ try{ a.currentTime=0; a.play(); }catch{} }}
+
+/* =========================
+   SPRITES
+========================= */
+function showCatchSprite(speciesSprite){
+  // Spawn a tiny splash + fish at bobber x
+  const bob = document.getElementById('float');
+  const rect = bob.getBoundingClientRect();
+  const sceneRect = UI.spriteLayer.getBoundingClientRect();
+  const x = rect.left - sceneRect.left + rect.width/2;
+  const y = rect.top - sceneRect.top + rect.height/2;
+
+  // splash
+  const splash = document.createElement('div');
+  splash.className = 'splash';
+  splash.style.left = x+'px'; splash.style.top = y+'px';
+  UI.spriteLayer.appendChild(splash);
+  setTimeout(()=> splash.remove(), 600);
+
+  // fish
+  const holder = document.createElement('div');
+  holder.className = 'popfish';
+  holder.style.left = x+'px'; holder.style.top = y+'px';
+
+  // inject inline SVG use
+  holder.innerHTML = `
+    <svg width="120" height="60" viewBox="0 0 120 60" aria-hidden="true">
+      <use href="#${speciesSprite}"></use>
+    </svg>
+  `;
+  UI.spriteLayer.appendChild(holder);
+  setTimeout(()=> holder.remove(), 1200);
 }
-function money(v){ return Math.round(v); }
-function toast(msg){
-  UI.toast.textContent = msg;
-  UI.toast.classList.add('show');
-  setTimeout(()=>UI.toast.classList.remove('show'), 1600);
-}
-function play(a){ if(SFX.on && a && a.play) { try{ a.currentTime=0; a.play(); }catch{} }}
 
 /* =========================
    RENDER
 ========================= */
 function recalcSweet(){
-  // widen sweet with rod level
-  const base = 0.20;
-  const per  = 0.02; // +2% width per level
+  const base = 0.20, per = 0.02;
   state.sweetWidth = base + per*(state.rodLv-1);
   state.sweetStart = 0.5 - state.sweetWidth/2;
   UI.sweet.style.left = (state.sweetStart*100)+'%';
@@ -330,7 +416,6 @@ function render(){
   UI.btnReel.disabled = !state.casting;
   UI.btnSell.disabled = state.inv.length===0;
 
-  // costs that scale
   const rodC = 50 + (state.rodLv-1)*30;
   const bucketC = 40 + Math.floor((state.bucketCap-6)/2)*25;
   UI.rodCost.textContent = rodC;
@@ -344,9 +429,23 @@ function render(){
 }
 function renderInv(){
   if(!state.inv.length){ UI.invList.innerHTML='<em>Empty bucket.</em>'; return; }
-  UI.invList.innerHTML = state.inv.map((f,i)=>{
-    return `<div>• ${f.n} — ${f.w.toFixed(2)} lb <span class="tag ${f.r}">${f.r}</span> <span class="money">+$${f.v}</span></div>`;
+  UI.invList.innerHTML = state.inv.map(f=>{
+    const ico = speciesIcon(f.n);
+    return `<div>• ${ico} ${f.n} — ${f.w.toFixed(2)} lb <span class="tag ${f.r}">${f.r}</span> <span class="money">+$${f.v}</span></div>`;
   }).join('');
+}
+function speciesIcon(name){
+  if(/bluegill/i.test(name)) return '🟢';
+  if(/crappie/i.test(name)) return '⚪';
+  if(/perch/i.test(name)) return '🟡';
+  if(/smallmouth/i.test(name)) return '🟫';
+  if(/largemouth/i.test(name)) return '🟩';
+  if(/walleye/i.test(name)) return '🟢✨';
+  if(/catfish/i.test(name)) return '⚙️';
+  if(/pike/i.test(name)) return '🟢🗡️';
+  if(/musk|muskellunge/i.test(name)) return '🟢💀';
+  if(/carp/i.test(name)) return '🟠';
+  return '🐟';
 }
 
 /* =========================
@@ -358,18 +457,18 @@ function startCast(){
   state.energy = Math.max(0, state.energy-1);
   UI.status.textContent = 'Casting… time your Reel in the sweet zone!';
   play(SFX.cast);
-  // randomize sweet position slightly each cast
+
+  // randomize sweet location per cast
   const jitter = rnd(-0.08, 0.08);
   state.sweetStart = clamp(0.5 - state.sweetWidth/2 + jitter, 0.05, 0.95-state.sweetWidth);
   UI.sweet.style.left = (state.sweetStart*100)+'%';
 
   // reset meter
-  state.t = Math.random(); // random start
+  state.t = Math.random();
   state.dir = Math.random()<0.5 ? -1 : 1;
 
-  // animate
   function tick(){
-    state.t += state.dir * 0.018 * (1 + (state.rodLv-1)*0.03); // slightly faster with levels to keep it engaging
+    state.t += state.dir * 0.018 * (1 + (state.rodLv-1)*0.03);
     if(state.t<=0){ state.t=0; state.dir=1; }
     if(state.t>=1){ state.t=1; state.dir=-1; }
     UI.fill.style.width = (state.t*100)+'%';
@@ -383,16 +482,20 @@ function stopCast(success){
   state.casting = false;
   cancelAnimationFrame(raf);
   if(success){
-    // catch fish if space
     if(state.inv.length>=state.bucketCap){
-      UI.status.textContent = 'Bucket full! Sell to free space.';
-      return;
+      UI.status.textContent = 'Bucket full! Sell to free space.'; return;
     }
     const f = choiceWeighted();
     const weight = rnd(f.w[0], f.w[1]);
     const variance = rnd(0.9,1.15);
-    const value = money(f.v * variance + weight*2);
+    const value = Math.round(f.v * variance + weight*2);
+
+    // add to inv
     state.inv.push({n:f.n, r:f.r, w:weight, v:value});
+
+    // sprite pop at bobber
+    showCatchSprite(f.sprite || 'fish-bluegill');
+
     if(state.baitTurns>0) state.baitTurns--;
     UI.status.textContent = `Hooked a ${f.n}! ${weight.toFixed(2)} lb (+$${value}).`;
     play(SFX.reel);
@@ -404,7 +507,28 @@ function stopCast(success){
 }
 
 /* =========================
-   ACTIONS
+   RNG / CHOICE
+========================= */
+function choiceWeighted(){
+  const bonusRare = 0.02*(state.rodLv-1) + (state.baitTurns>0 ? 0.08 : 0);
+  const weights = FISH.map(f=>{
+    let w = RARITY_WEIGHT[f.r];
+    if(f.r==='uncommon') w += bonusRare*0.6;
+    if(f.r==='rare')     w += bonusRare*0.35;
+    if(f.r==='epic')     w += bonusRare*0.20;
+    return Math.max(0.01, w);
+  });
+  const sum = weights.reduce((a,b)=>a+b,0);
+  let pick = Math.random()*sum;
+  for(let i=0;i<FISH.length;i++){
+    if(pick<weights[i]) return FISH[i];
+    pick -= weights[i];
+  }
+  return FISH[FISH.length-1];
+}
+
+/* =========================
+   ACTIONS & UI
 ========================= */
 UI.btnCast.addEventListener('click', ()=>{
   if(state.energy<=0){ toast("Out of energy! Sell fish for a breather."); return; }
@@ -413,17 +537,13 @@ UI.btnCast.addEventListener('click', ()=>{
 });
 UI.btnReel.addEventListener('click', ()=>{
   if(!state.casting) return;
-  const x = state.t;
-  const s0 = state.sweetStart, s1 = state.sweetStart + state.sweetWidth;
-  const hit = (x>=s0 && x<=s1);
-  stopCast(hit);
+  const x = state.t, s0 = state.sweetStart, s1 = state.sweetStart + state.sweetWidth;
+  stopCast(x>=s0 && x<=s1);
 });
 UI.btnSell.addEventListener('click', ()=>{
   if(!state.inv.length){ toast("Nothing to sell!"); return; }
   const total = state.inv.reduce((a,b)=>a+b.v,0);
-  state.coins += total;
-  state.inv = [];
-  // small energy restore
+  state.coins += total; state.inv = [];
   state.energy = clamp(state.energy+4, 0, state.energyMax);
   play(SFX.sell);
   UI.status.textContent = `Sold catch for $${total}. Energy +4.`;
@@ -434,26 +554,21 @@ UI.btnRod.addEventListener('click', ()=>{
   const cost = 50 + (state.rodLv-1)*30;
   if(state.coins<cost) return toast("Not enough coins.");
   if(state.rodLv>=10) return toast("Rod is maxed!");
-  state.coins -= cost;
-  state.rodLv++;
+  state.coins -= cost; state.rodLv++;
   UI.status.textContent = `Upgraded rod to Lv ${state.rodLv}! Wider sweet zone + rarer fish odds.`;
   render(); save();
 });
-
 UI.btnBucket.addEventListener('click', ()=>{
   const cost = 40 + Math.floor((state.bucketCap-6)/2)*25;
   if(state.coins<cost) return toast("Not enough coins.");
   if(state.bucketCap>=20) return toast("Bucket at max capacity!");
-  state.coins -= cost;
-  state.bucketCap += 2;
+  state.coins -= cost; state.bucketCap += 2;
   UI.status.textContent = `Bucket upgraded to ${state.bucketCap} slots.`;
   render(); save();
 });
-
 UI.btnBait.addEventListener('click', ()=>{
   if(state.coins<20) return toast("Not enough coins.");
-  state.coins -= 20;
-  state.baitTurns += 3;
+  state.coins -= 20; state.baitTurns += 3;
   UI.status.textContent = `Premium bait active for ${state.baitTurns} cast(s).`;
   render(); save();
 });
@@ -462,24 +577,19 @@ UI.btnMute.addEventListener('click', ()=>{
   SFX.on = !SFX.on;
   UI.btnMute.textContent = SFX.on ? '🔊 Sound' : '🔈 Muted';
 });
-
 UI.btnHow.addEventListener('click', ()=>{
-  alert(
-`How to play:
+  alert(`How to play:
 • Click CAST (uses 1 energy).
 • A meter slides back and forth — click REEL inside the green zone to hook a fish.
-• Fish go to your bucket; SELL to earn coins and restore some energy.
-• Buy upgrades: Rod (wider green zone + rarer fish), Bucket (+slots), Bait (3 casts with higher rare chance).
-• Autosaves your progress. Good luck!`
-  );
+• Fish pop up on the water when you catch them 🐟
+• SELL to earn coins and restore some energy.
+• Upgrades: Rod (wider green zone + rarer fish), Bucket (+slots), Bait (3 casts, higher rare odds).
+• Autosaves progress. Tight lines!`);
 });
-
 UI.btnReset.addEventListener('click', ()=>{
   if(!confirm("Reset progress?")) return;
   localStorage.removeItem(SAVE_KEY);
-  Object.assign(state, {
-    coins:0, energy:20, energyMax:20, rodLv:1, bucketCap:6, inv:[], baitTurns:0, casting:false,t:0,dir:1
-  });
+  Object.assign(state, {coins:0, energy:20, energyMax:20, rodLv:1, bucketCap:6, inv:[], baitTurns:0, casting:false,t:0,dir:1, sweetStart:0.4, sweetWidth:0.20});
   UI.status.textContent = "Progress reset.";
   render();
 });
@@ -487,15 +597,13 @@ UI.btnReset.addEventListener('click', ()=>{
 /* =========================
    INIT
 ========================= */
+function recalcPositions(){ /* reserved for responsive tweaks if needed */ }
 function gameInit(){
-  recalcSweet();
-  render();
-  // gentle autosave
+  recalcSweet(); render(); recalcPositions();
   setInterval(save, 3000);
 }
 gameInit();
-
-// accessibility: space/enter bindings on focused buttons (browser handles)
+window.addEventListener('resize', recalcPositions);
 </script>
 </body>
 </html>
