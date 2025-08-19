@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fishly-AI — Click Fishing</title>
+<style>
+  :root{
+    --bg:#0a2239; --panel:#0f2d4a; --ink:#e8f1f2; --muted:#9fb3c8;
+    --accent:#2bb673; --accent2:#33d68c; --danger:#ff6b6b; --gold:#f5c542;
+    --waterTop:#3aaed8; --waterMid:#2b9ec7; --waterDeep:#1f78a1;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:linear-gradient(180deg,#051421 0%,#072535 50%,#0a2239 100%);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  header{padding:10px 12px;text-align:center;background:#061a2a;position:sticky;top:0;z-index:5;border-bottom:1px solid #0c2c47}
+  header h1{margin:0;font-size:20px}
+  header small{color:var(--muted)}
+  .wrap{max-width:1100px;margin:0 auto;padding:12px}
+
+  .game{
+    display:grid;gap:12px;
+    grid-template-columns: 1.4fr 1fr;
+  }
+  @media (max-width:920px){ .game{grid-template-columns:1fr} }
+
+  .scene{
+    background:
+      radial-gradient(ellipse at 50% 20%, #0c3050 0%, transparent 60%),
+      linear-gradient(180deg, #0b2a45 0%, #0a2239 100%);
+    border:1px solid #0f3659;border-radius:12px;overflow:hidden;position:relative;min-height:420px;
+  }
+  .water{
+    position:absolute;left:0;right:0;bottom:0;top:110px;
+    background:
+      linear-gradient(180deg,var(--waterTop) 0%, var(--waterMid) 40%, var(--waterDeep) 100%),
+      repeating-linear-gradient(0deg,rgba(255,255,255,.06) 0 2px,transparent 2px 6px);
+  }
+  .shore{
+    position:absolute;left:0;right:0;top:0;height:110px;
+    background:
+      linear-gradient(180deg,#0e3b60 0%,#0b2f4e 65%,transparent 66% 100%),
+      radial-gradient(ellipse at 70% 110%, #0c2740 0%, transparent 60%);
+  }
+  .dock{
+    position:absolute;left:18px;top:65px;width:140px;height:16px;background:#694b33;border:1px solid #5a3e2a;border-radius:3px;
+    box-shadow:0 2px 0 rgba(0,0,0,.4) inset;
+  }
+  .avatar{
+    position:absolute;left:26px;top:28px;width:46px;height:46px;border-radius:50%;
+    background: radial-gradient(circle at 30% 30%, #e6f6ff 0%, #9fd0f1 55%, #5aa7d8 100%);
+    border:2px solid #2a628f; box-shadow:0 2px 8px rgba(0,0,0,.4);
+  }
+  .float{
+    position:absolute; left:50%; top:170px; width:10px; height:10px; margin-left:-5px; border-radius:50%;
+    background:#ff4757; border:2px solid #fff;
+    animation: bob 2.2s ease-in-out infinite;
+  }
+  @keyframes bob { 0%{transform:translateY(-3px)} 50%{transform:translateY(3px)} 100%{transform:translateY(-3px)} }
+
+  .panel{
+    background:rgba(9,31,51,.6);border:1px solid #0f3659;border-radius:12px;padding:10px
+  }
+  .panel h2{margin:0 0 8px;font-size:16px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .btn{background:var(--accent);border:none;border-radius:10px;color:#07202e;font-weight:700;padding:9px 12px;cursor:pointer}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .btn.alt{background:#1ea0c6;color:#043244}
+  .btn.danger{background:var(--danger);color:#330a0a}
+  .badge{padding:4px 8px;border-radius:999px;background:#0e3555;border:1px solid #154a73;color:var(--muted);font-size:.85rem}
+  .money{color:var(--gold);font-weight:800}
+
+  /* meter */
+  .meterWrap{background:#082132;border:1px solid #0e3a5d;border-radius:10px;height:24px;position:relative;overflow:hidden}
+  .meterFill{position:absolute;left:0;top:0;bottom:0;width:18%;background:linear-gradient(90deg,#1dd1a1,#10ac84)}
+  .meterSweet{position:absolute;top:0;bottom:0;width:20%;left:40%;background:repeating-linear-gradient(90deg,rgba(255,255,255,.25) 0 4px,rgba(255,255,255,.15) 4px 8px)}
+  .meterLabel{position:absolute;left:8px;top:2px;font-size:.8rem;color:#d4f3e6}
+
+  .inv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .card{background:rgba(13,40,64,.55);border:1px solid #134668;border-radius:10px;padding:8px}
+  .card h3{margin:0 0 6px;font-size:14px}
+  .list{font-size:.93rem;color:#d7e6f1;max-height:160px;overflow:auto}
+  .hint{color:var(--muted);font-size:.9rem}
+  .store .row{justify-content:space-between}
+  .store .item{display:flex;gap:6px;align-items:center;justify-content:space-between;margin:6px 0}
+  .tag{font-size:.75rem;color:#a8d7ff;border:1px solid #2b6fa0;background:#0d3553;padding:2px 6px;border-radius:999px}
+
+  .toast{
+    position:fixed;left:50%;transform:translateX(-50%);bottom:16px;background:#0f2d4a;border:1px solid #134668;color:#e6f7ff;
+    padding:8px 12px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.35);z-index:10;opacity:0;pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+  }
+  .toast.show{opacity:1;transform:translate(-50%, -6px)}
+  .topbar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .linkish{color:#7fdcff;cursor:pointer;text-decoration:underline}
+</style>
+</head>
+<body>
+<header>
+  <h1>Fishly-AI — Click Fishing</h1>
+  <small>Cast • Time the meter • Sell fish • Upgrade gear • Autosaves</small>
+</header>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="row">
+      <span class="badge">Coins: <span id="coins">0</span> 💰</span>
+      <span class="badge">Energy: <span id="energy">20</span>/20 ⚡</span>
+      <span class="badge">Rod Lv <span id="rodLv">1</span> 🎣</span>
+      <span class="badge">Bucket <span id="bucketUsed">0</span>/<span id="bucketCap">6</span> 🪣</span>
+      <span class="badge">Bait: <span id="baitTurns">0</span> 🎯</span>
+    </div>
+    <div class="row">
+      <button class="btn alt" id="btnMute" aria-label="Toggle sound">🔊 Sound</button>
+      <span class="linkish" id="btnHow">How to play</span>
+      <span class="linkish" id="btnReset">Reset</span>
+    </div>
+  </div>
+
+  <div class="game">
+    <!-- LEFT: Scene + Controls -->
+    <div class="scene" aria-label="Lake scene">
+      <div class="shore"></div>
+      <div class="dock"></div>
+      <div class="avatar" title="You"></div>
+      <div class="float" id="float"></div>
+      <div class="water"></div>
+
+      <div style="position:absolute;left:12px;right:12px;bottom:12px">
+        <div class="panel">
+          <h2>Cast & Hook</h2>
+          <div class="row" style="gap:8px;margin-bottom:8px">
+            <button class="btn" id="btnCast">🎣 Cast (-1 ⚡)</button>
+            <button class="btn" id="btnReel" disabled>🌀 Reel</button>
+            <button class="btn danger" id="btnSell">💵 Sell All</button>
+          </div>
+          <div class="meterWrap" aria-label="Timing meter">
+            <div class="meterSweet" id="sweet"></div>
+            <div class="meterFill" id="fill"></div>
+            <div class="meterLabel" id="meterLabel">Tap Reel in the sweet zone!</div>
+          </div>
+          <div class="hint" style="margin-top:6px" id="status">Ready.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Inventory & Store -->
+    <div class="panel">
+      <div class="inv">
+        <div class="card">
+          <h3>Inventory</h3>
+          <div class="list" id="invList"></div>
+          <div class="hint">Tip: Better rods widen the sweet zone and increase rare odds.</div>
+        </div>
+        <div class="card store">
+          <h3>Shop</h3>
+          <div class="item">
+            <div>
+              <strong>Rod Upgrade</strong> <span class="tag">+Sweet Zone / +Rare</span><br>
+              <small>Current: Lv <span id="rodLv2">1</span></small>
+            </div>
+            <button class="btn" id="buyRod">Buy (<span class="money" id="rodCost">50</span>)</button>
+          </div>
+          <div class="item">
+            <div>
+              <strong>Bucket Upgrade</strong> <span class="tag">+2 slots</span><br>
+              <small>Cap: <span id="bucketCap2">6</span></small>
+            </div>
+            <button class="btn" id="buyBucket">Buy (<span class="money" id="bucketCost">40</span>)</button>
+          </div>
+          <div class="item">
+            <div>
+              <strong>Premium Bait</strong> <span class="tag">3 casts: +Rare</span>
+            </div>
+            <button class="btn" id="buyBait">Buy (<span class="money">20</span>)</button>
+          </div>
+          <div class="hint">Selling empties your bucket and gives coins. Premium bait stacks in time, not power.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* =========================
+   DATA & STATE
+========================= */
+const FISH = [
+  // name, rarity, minW, maxW (lb), baseValue
+  {n:"Bluegill", r:"common",  w:[0.2, 1.2], v:4},
+  {n:"Crappie",  r:"common",  w:[0.5, 1.8], v:5},
+  {n:"Perch",    r:"common",  w:[0.3, 1.5], v:5},
+  {n:"Largemouth Bass", r:"uncommon", w:[1.0, 6.0], v:12},
+  {n:"Smallmouth Bass", r:"uncommon", w:[1.0, 5.0], v:12},
+  {n:"Walleye",  r:"uncommon", w:[1.2, 7.0], v:14},
+  {n:"Channel Catfish", r:"uncommon", w:[1.5, 10.0], v:15},
+  {n:"Northern Pike", r:"rare", w:[3.0, 18.0], v:24},
+  {n:"Muskellunge", r:"epic", w:[8.0, 35.0], v:60},
+  {n:"Common Carp", r:"uncommon", w:[2.0, 18.0], v:10}
+];
+
+const RARITY_WEIGHT = {
+  common:   1.0,
+  uncommon: 0.45,
+  rare:     0.15,
+  epic:     0.05
+};
+
+const SFX = {
+  on:true,
+  cast:new Audio('data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAA...'), // tiny blank stub (keeps simple)
+  reel:new Audio('data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAA...'),
+  sell:new Audio('data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAA...')
+};
+// (Data URI sounds are stubs above; replace with real tiny wavs if you like.)
+
+const state = {
+  coins: 0,
+  energy: 20,
+  energyMax: 20,
+  rodLv: 1,
+  bucketCap: 6,
+  inv: [],
+  baitTurns: 0,
+  casting: false,
+  t: 0, dir: 1, // meter oscillation
+  sweetStart: 0.4,
+  sweetWidth: 0.20
+};
+
+const UI = {
+  coins: document.getElementById('coins'),
+  energy: document.getElementById('energy'),
+  rodLv: document.getElementById('rodLv'),
+  rodLv2: document.getElementById('rodLv2'),
+  bucketUsed: document.getElementById('bucketUsed'),
+  bucketCap: document.getElementById('bucketCap'),
+  bucketCap2: document.getElementById('bucketCap2'),
+  baitTurns: document.getElementById('baitTurns'),
+  btnCast: document.getElementById('btnCast'),
+  btnReel: document.getElementById('btnReel'),
+  btnSell: document.getElementById('btnSell'),
+  fill: document.getElementById('fill'),
+  sweet: document.getElementById('sweet'),
+  label: document.getElementById('meterLabel'),
+  status: document.getElementById('status'),
+  invList: document.getElementById('invList'),
+  rodCost: document.getElementById('rodCost'),
+  bucketCost: document.getElementById('bucketCost'),
+  btnRod: document.getElementById('buyRod'),
+  btnBucket: document.getElementById('buyBucket'),
+  btnBait: document.getElementById('buyBait'),
+  toast: document.getElementById('toast'),
+  btnMute: document.getElementById('btnMute'),
+  btnHow: document.getElementById('btnHow'),
+  btnReset: document.getElementById('btnReset')
+};
+
+/* =========================
+   SAVE / LOAD
+========================= */
+const SAVE_KEY='fishly_click_save_v1';
+function save(){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch{}
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return;
+    const s = JSON.parse(raw);
+    Object.assign(state, s);
+    // backward safety
+    state.energyMax = 20;
+  }catch{}
+}
+load();
+
+/* =========================
+   UTILITIES
+========================= */
+function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
+function rnd(a,b){ return a + Math.random()*(b-a); }
+function choiceWeighted(){
+  // build weighted list using rarity + rod & bait bonuses
+  const bonusRare = 0.02 * (state.rodLv-1) + (state.baitTurns>0 ? 0.08 : 0); // +2% per rod level, +8% with bait
+  const weights = FISH.map(f=>{
+    let w = RARITY_WEIGHT[f.r];
+    if(f.r==='uncommon') w += bonusRare*0.6;
+    if(f.r==='rare')     w += bonusRare*0.35;
+    if(f.r==='epic')     w += bonusRare*0.20;
+    return Math.max(0.01, w);
+  });
+  const sum = weights.reduce((a,b)=>a+b,0);
+  let pick = Math.random()*sum;
+  for(let i=0;i<FISH.length;i++){
+    if(pick<weights[i]) return FISH[i];
+    pick -= weights[i];
+  }
+  return FISH[FISH.length-1];
+}
+function money(v){ return Math.round(v); }
+function toast(msg){
+  UI.toast.textContent = msg;
+  UI.toast.classList.add('show');
+  setTimeout(()=>UI.toast.classList.remove('show'), 1600);
+}
+function play(a){ if(SFX.on && a && a.play) { try{ a.currentTime=0; a.play(); }catch{} }}
+
+/* =========================
+   RENDER
+========================= */
+function recalcSweet(){
+  // widen sweet with rod level
+  const base = 0.20;
+  const per  = 0.02; // +2% width per level
+  state.sweetWidth = base + per*(state.rodLv-1);
+  state.sweetStart = 0.5 - state.sweetWidth/2;
+  UI.sweet.style.left = (state.sweetStart*100)+'%';
+  UI.sweet.style.width = (state.sweetWidth*100)+'%';
+}
+function render(){
+  UI.coins.textContent = state.coins;
+  UI.energy.textContent = state.energy;
+  UI.rodLv.textContent = state.rodLv; UI.rodLv2.textContent = state.rodLv;
+  UI.bucketCap.textContent = state.bucketCap; UI.bucketCap2.textContent = state.bucketCap;
+  UI.bucketUsed.textContent = state.inv.length;
+  UI.baitTurns.textContent = state.baitTurns;
+  UI.btnCast.disabled = state.casting || state.energy<=0 || state.inv.length>=state.bucketCap;
+  UI.btnReel.disabled = !state.casting;
+  UI.btnSell.disabled = state.inv.length===0;
+
+  // costs that scale
+  const rodC = 50 + (state.rodLv-1)*30;
+  const bucketC = 40 + Math.floor((state.bucketCap-6)/2)*25;
+  UI.rodCost.textContent = rodC;
+  UI.bucketCost.textContent = bucketC;
+  UI.btnRod.disabled = state.coins < rodC || state.rodLv>=10;
+  UI.btnBucket.disabled = state.coins < bucketC || state.bucketCap>=20;
+  UI.btnBait.disabled = state.coins < 20;
+
+  recalcSweet();
+  renderInv();
+}
+function renderInv(){
+  if(!state.inv.length){ UI.invList.innerHTML='<em>Empty bucket.</em>'; return; }
+  UI.invList.innerHTML = state.inv.map((f,i)=>{
+    return `<div>• ${f.n} — ${f.w.toFixed(2)} lb <span class="tag ${f.r}">${f.r}</span> <span class="money">+$${f.v}</span></div>`;
+  }).join('');
+}
+
+/* =========================
+   GAME LOOP: CAST / METER
+========================= */
+let raf=null;
+function startCast(){
+  state.casting = true;
+  state.energy = Math.max(0, state.energy-1);
+  UI.status.textContent = 'Casting… time your Reel in the sweet zone!';
+  play(SFX.cast);
+  // randomize sweet position slightly each cast
+  const jitter = rnd(-0.08, 0.08);
+  state.sweetStart = clamp(0.5 - state.sweetWidth/2 + jitter, 0.05, 0.95-state.sweetWidth);
+  UI.sweet.style.left = (state.sweetStart*100)+'%';
+
+  // reset meter
+  state.t = Math.random(); // random start
+  state.dir = Math.random()<0.5 ? -1 : 1;
+
+  // animate
+  function tick(){
+    state.t += state.dir * 0.018 * (1 + (state.rodLv-1)*0.03); // slightly faster with levels to keep it engaging
+    if(state.t<=0){ state.t=0; state.dir=1; }
+    if(state.t>=1){ state.t=1; state.dir=-1; }
+    UI.fill.style.width = (state.t*100)+'%';
+    raf = requestAnimationFrame(tick);
+  }
+  cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(tick);
+  render();
+}
+function stopCast(success){
+  state.casting = false;
+  cancelAnimationFrame(raf);
+  if(success){
+    // catch fish if space
+    if(state.inv.length>=state.bucketCap){
+      UI.status.textContent = 'Bucket full! Sell to free space.';
+      return;
+    }
+    const f = choiceWeighted();
+    const weight = rnd(f.w[0], f.w[1]);
+    const variance = rnd(0.9,1.15);
+    const value = money(f.v * variance + weight*2);
+    state.inv.push({n:f.n, r:f.r, w:weight, v:value});
+    if(state.baitTurns>0) state.baitTurns--;
+    UI.status.textContent = `Hooked a ${f.n}! ${weight.toFixed(2)} lb (+$${value}).`;
+    play(SFX.reel);
+    toast(`+ ${f.n} • ${weight.toFixed(2)} lb • $${value}`);
+  } else {
+    UI.status.textContent = 'Missed it! Try again.';
+  }
+  render();
+}
+
+/* =========================
+   ACTIONS
+========================= */
+UI.btnCast.addEventListener('click', ()=>{
+  if(state.energy<=0){ toast("Out of energy! Sell fish for a breather."); return; }
+  if(state.inv.length>=state.bucketCap){ toast("Bucket full — sell your catch."); return; }
+  startCast();
+});
+UI.btnReel.addEventListener('click', ()=>{
+  if(!state.casting) return;
+  const x = state.t;
+  const s0 = state.sweetStart, s1 = state.sweetStart + state.sweetWidth;
+  const hit = (x>=s0 && x<=s1);
+  stopCast(hit);
+});
+UI.btnSell.addEventListener('click', ()=>{
+  if(!state.inv.length){ toast("Nothing to sell!"); return; }
+  const total = state.inv.reduce((a,b)=>a+b.v,0);
+  state.coins += total;
+  state.inv = [];
+  // small energy restore
+  state.energy = clamp(state.energy+4, 0, state.energyMax);
+  play(SFX.sell);
+  UI.status.textContent = `Sold catch for $${total}. Energy +4.`;
+  render(); save();
+});
+
+UI.btnRod.addEventListener('click', ()=>{
+  const cost = 50 + (state.rodLv-1)*30;
+  if(state.coins<cost) return toast("Not enough coins.");
+  if(state.rodLv>=10) return toast("Rod is maxed!");
+  state.coins -= cost;
+  state.rodLv++;
+  UI.status.textContent = `Upgraded rod to Lv ${state.rodLv}! Wider sweet zone + rarer fish odds.`;
+  render(); save();
+});
+
+UI.btnBucket.addEventListener('click', ()=>{
+  const cost = 40 + Math.floor((state.bucketCap-6)/2)*25;
+  if(state.coins<cost) return toast("Not enough coins.");
+  if(state.bucketCap>=20) return toast("Bucket at max capacity!");
+  state.coins -= cost;
+  state.bucketCap += 2;
+  UI.status.textContent = `Bucket upgraded to ${state.bucketCap} slots.`;
+  render(); save();
+});
+
+UI.btnBait.addEventListener('click', ()=>{
+  if(state.coins<20) return toast("Not enough coins.");
+  state.coins -= 20;
+  state.baitTurns += 3;
+  UI.status.textContent = `Premium bait active for ${state.baitTurns} cast(s).`;
+  render(); save();
+});
+
+UI.btnMute.addEventListener('click', ()=>{
+  SFX.on = !SFX.on;
+  UI.btnMute.textContent = SFX.on ? '🔊 Sound' : '🔈 Muted';
+});
+
+UI.btnHow.addEventListener('click', ()=>{
+  alert(
+`How to play:
+• Click CAST (uses 1 energy).
+• A meter slides back and forth — click REEL inside the green zone to hook a fish.
+• Fish go to your bucket; SELL to earn coins and restore some energy.
+• Buy upgrades: Rod (wider green zone + rarer fish), Bucket (+slots), Bait (3 casts with higher rare chance).
+• Autosaves your progress. Good luck!`
+  );
+});
+
+UI.btnReset.addEventListener('click', ()=>{
+  if(!confirm("Reset progress?")) return;
+  localStorage.removeItem(SAVE_KEY);
+  Object.assign(state, {
+    coins:0, energy:20, energyMax:20, rodLv:1, bucketCap:6, inv:[], baitTurns:0, casting:false,t:0,dir:1
+  });
+  UI.status.textContent = "Progress reset.";
+  render();
+});
+
+/* =========================
+   INIT
+========================= */
+function gameInit(){
+  recalcSweet();
+  render();
+  // gentle autosave
+  setInterval(save, 3000);
+}
+gameInit();
+
+// accessibility: space/enter bindings on focused buttons (browser handles)
+</script>
+</body>
+</html>
