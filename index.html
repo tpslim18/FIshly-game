@@ -1,704 +1,781 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Fishly-AI — Click Fishing (POV + Cast Bobber)</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Fishly-AI — Dock POV Fishing (Mythicals + Log)</title>
 <style>
   :root{
-    --bg:#0a2239; --panel:#0f2d4a; --ink:#e8f1f2; --muted:#9fb3c8;
-    --accent:#2bb673; --accent2:#33d68c; --danger:#ff6b6b; --gold:#f5c542;
-    --waterTop:#3aaed8; --waterMid:#2b9ec7; --waterDeep:#1f78a1;
+    --ink:#e8f1f2; --muted:#9fb3c8; --panel:#0b1f33; --accent:#2bb673; --danger:#ff6b6b; --gold:#f5c542;
   }
   *{box-sizing:border-box}
-  html,body{margin:0;height:100%;background:linear-gradient(180deg,#051421 0%,#072535 50%,#0a2239 100%);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-  header{padding:10px 12px;text-align:center;background:#061a2a;position:sticky;top:0;z-index:5;border-bottom:1px solid #0c2c47}
-  header h1{margin:0;font-size:20px}
+  html,body{margin:0;height:100%;background:#061a2a;color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;overflow:hidden}
+  header{padding:10px 12px;text-align:center;background:#061a2a;border-bottom:1px solid #0c2c47}
+  header h1{margin:0;font-size:18px}
   header small{color:var(--muted)}
-  .wrap{max-width:1100px;margin:0 auto;padding:12px}
 
-  .game{display:grid;gap:12px;grid-template-columns:1.4fr 1fr}
-  @media (max-width:920px){ .game{grid-template-columns:1fr} }
+  canvas{display:block; width:100vw; height:100vh; background:#06243a}
 
-  /* ===== POV Scene ===== */
-  .scene{
-    position:relative;min-height:480px;border:1px solid #0f3659;border-radius:12px;overflow:hidden;
-    background:
-      radial-gradient(ellipse at 50% 16%, #0e3456 0%, transparent 60%),
-      linear-gradient(180deg, #0b2a45 0%, #0a2239 100%);
+  /* HUD dock menu */
+  .dockHUD{
+    position:fixed; left:50%; transform:translateX(-50%);
+    bottom:22px; z-index:6;
+    background:linear-gradient(180deg, rgba(20,35,55,.9), rgba(10,22,40,.9));
+    border:1px solid #0f3659; border-radius:12px; padding:10px 12px;
+    display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    box-shadow:0 10px 30px rgba(0,0,0,.45);
   }
-  /* Horizon/sky hint */
-  .skyGlow{
-    position:absolute;left:0;right:0;top:0;height:110px;
-    background:linear-gradient(180deg,#0e3b60 0%,#0b2f4e 70%,transparent 71% 100%);
+  .btn{background:var(--accent); border:none; border-radius:10px; padding:9px 12px; color:#06212f; font-weight:800; cursor:pointer}
+  .btn:disabled{opacity:.6; cursor:not-allowed}
+  .btn.alt{background:#1ea0c6; color:#073144}
+  .btn.danger{background:var(--danger); color:#3a0b0b}
+  .badge{padding:4px 8px; border-radius:999px; background:#0e3555; border:1px solid #154a73; color:#d1e6f7; font-size:.85rem}
+  .money{color:var(--gold); font-weight:900}
+
+  /* Meter */
+  .meterWrap{
+    position:fixed; left:50%; transform:translateX(-50%);
+    bottom:100px; z-index:6; width:min(720px, 92vw);
+    height:24px; border-radius:10px; overflow:hidden;
+    background:#082132; border:1px solid #0e3a5d;
+    box-shadow:0 8px 22px rgba(0,0,0,.3);
   }
+  .meterFill{position:absolute; left:0; top:0; bottom:0; width:12%; background:linear-gradient(90deg,#1dd1a1,#10ac84)}
+  .meterSweet{position:absolute; top:0; bottom:0; left:40%; width:10%;
+    background:repeating-linear-gradient(90deg,rgba(255,255,255,.25) 0 4px,rgba(255,255,255,.15) 4px 8px)}
+  .meterLabel{position:absolute; right:8px; top:2px; font-size:.8rem; color:#d4f3e6}
 
-  /* Dock from POV */
-  .dockPOV{
-    position:absolute;left:-10px;right:-10px;bottom:0;height:110px;
-    background:
-      linear-gradient(180deg, rgba(59,38,26,.0) 0%, rgba(59,38,26,.25) 8%, rgba(59,38,26,.55) 100%),
-      repeating-linear-gradient(90deg,#6b4a34 0 120px,#5b3f2b 120px 124px);
-    border-top:2px solid rgba(0,0,0,.25);
-    transform:perspective(800px) rotateX(18deg);
-    transform-origin:bottom center;
-    box-shadow:0 -20px 60px rgba(0,0,0,.35) inset;
+  .toast{position:fixed; left:50%; transform:translateX(-50%); bottom:160px; background:#0f2d4a; border:1px solid #134668; color:#e6f7ff;
+    padding:8px 12px; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,.35); z-index:10; opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease;}
+  .toast.show{opacity:1; transform:translate(-50%, -6px)}
+
+  .netText{position:fixed; left:50%; transform:translateX(-50%); bottom:130px; color:#b3ecff; text-shadow:0 2px 10px rgba(0,0,0,.5); font-weight:800; opacity:0; transition:opacity .25s ease}
+
+  /* Catch Log modal */
+  dialog{border:0;border-radius:12px;padding:0;background:#0b1f33;color:#dff4ff;width:min(860px,94vw)}
+  dialog::backdrop{background:rgba(0,0,0,.45)}
+  .modal{padding:14px}
+  .modal h2{margin:.2rem 0 .6rem}
+  .grid{display:grid;gap:10px}
+  .grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .card{background:#0e2a46;border:1px solid #134668;border-radius:10px;padding:10px}
+  .stat{display:flex;justify-content:space-between;border-bottom:1px dashed #134668;padding:6px 0}
+  .closeRow{display:flex;justify-content:flex-end;margin-top:8px}
+  .btn.small{padding:6px 10px;font-weight:700}
+
+  /* Mythical minigame overlay */
+  .overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:20;
   }
-
-  /* Water band */
-  .waterBand{
-    position:absolute;left:0;right:0;bottom:110px;top:120px;
-    background:
-      linear-gradient(180deg,var(--waterTop) 0%, var(--waterMid) 40%, var(--waterDeep) 100%),
-      repeating-linear-gradient(0deg,rgba(255,255,255,.06) 0 2px,transparent 2px 6px);
+  .overlay .panel{
+    background:#0b1f33; border:1px solid #134668; border-radius:14px; padding:18px; width:min(520px,94vw); text-align:center;
+    box-shadow:0 10px 30px rgba(0,0,0,.45)
   }
+  .meterQuick{height:24px;border-radius:10px;background:#082132;border:1px solid #0e3a5d;overflow:hidden;margin:10px 0}
+  .meterBar{height:100%;width:0;background:linear-gradient(90deg,#f5c542,#ff8a00)}
 
-  /* Hand + Rod (POV) */
-  .rodLayer{
-    position:absolute;right:-40px;bottom:55px;width:420px;height:260px;pointer-events:none;
-  }
-  .rodLayer svg{filter:drop-shadow(0 3px 8px rgba(0,0,0,.6))}
-  .hand{
-    position:absolute;right:12px;bottom:42px;width:140px;height:120px;border-radius:16px;
-    background:radial-gradient(circle at 30% 35%, #ffe6c9 0%, #f0c9a2 45%, #cf9c6f 100%);
-    border:2px solid rgba(80,40,10,.4); transform:rotate(-8deg);
-    box-shadow:0 6px 16px rgba(0,0,0,.45);
-  }
-
-  /* Bobber */
-  .bobber{
-    position:absolute; width:14px; height:14px; border-radius:50%;
-    background:#ff4757; border:2px solid #fff; pointer-events:none; opacity:0;
-  }
-  .bob{
-    animation: bob 2.2s ease-in-out infinite;
-  }
-  @keyframes bob{ 0%{transform:translate(-50%,-50%) translateY(-3px)} 50%{transform:translate(-50%,-50%) translateY(3px)} 100%{transform:translate(-50%,-50%) translateY(-3px)} }
-
-  /* Casting trail (faint line) */
-  .lineLayer{position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none}
-  .line{position:absolute;height:2px;background:linear-gradient(90deg,rgba(255,255,255,.0),rgba(255,255,255,.8),rgba(255,255,255,.0));transform-origin:0 0;opacity:0}
-
-  /* Sprites layer */
-  .sprite-layer{position:absolute; left:0; right:0; top:120px; bottom:110px; pointer-events:none;}
-  .popfish{position:absolute; width:120px; height:60px; transform:translate(-50%,-50%) scale(.85); opacity:0; animation: rise 1.1s ease-out forwards;}
-  @keyframes rise{
-    0%{opacity:0; transform:translate(-50%, -10px) scale(.7) rotate(-6deg)}
-    15%{opacity:1; transform:translate(-50%, -6px) scale(1) rotate(0deg)}
-    70%{opacity:1; transform:translate(-50%, -46px) scale(1) rotate(0deg)}
-    100%{opacity:0; transform:translate(-50%, -70px) scale(.95) rotate(4deg)}
-  }
-  .splash{position:absolute; width:34px; height:34px; transform:translate(-50%,-50%); opacity:.0; border-radius:50%;
-    box-shadow: 0 0 0 0 rgba(255,255,255,.85) inset; animation: splash .6s ease-out forwards;}
-  @keyframes splash{
-    0%{opacity:0; transform:translate(-50%,-50%) scale(.2)}
-    20%{opacity:.9}
-    100%{opacity:0; transform:translate(-50%,-50%) scale(1.8)}
-  }
-
-  /* UI Panels */
-  .panel{background:rgba(9,31,51,.6);border:1px solid #0f3659;border-radius:12px;padding:10px}
-  .panel h2{margin:0 0 8px;font-size:16px}
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .btn{background:var(--accent);border:none;border-radius:10px;color:#07202e;font-weight:700;padding:9px 12px;cursor:pointer}
-  .btn:disabled{opacity:.6;cursor:not-allowed}
-  .btn.alt{background:#1ea0c6;color:#043244}
-  .btn.danger{background:var(--danger);color:#330a0a}
-  .badge{padding:4px 8px;border-radius:999px;background:#0e3555;border:1px solid #154a73;color:var(--muted);font-size:.85rem}
-  .money{color:var(--gold);font-weight:800}
-
-  /* meter */
-  .meterWrap{background:#082132;border:1px solid #0e3a5d;border-radius:10px;height:24px;position:relative;overflow:hidden}
-  .meterFill{position:absolute;left:0;top:0;bottom:0;width:18%;background:linear-gradient(90deg,#1dd1a1,#10ac84)}
-  .meterSweet{position:absolute;top:0;bottom:0;width:20%;left:40%;background:repeating-linear-gradient(90deg,rgba(255,255,255,.25) 0 4px,rgba(255,255,255,.15) 4px 8px)}
-  .meterLabel{position:absolute;left:8px;top:2px;font-size:.8rem;color:#d4f3e6}
-
-  .inv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-  .card{background:rgba(13,40,64,.55);border:1px solid #134668;border-radius:10px;padding:8px}
-  .card h3{margin:0 0 6px;font-size:14px}
-  .list{font-size:.93rem;color:#d7e6f1;max-height:160px;overflow:auto}
-  .hint{color:var(--muted);font-size:.9rem}
-  .store .row{justify-content:space-between}
-  .store .item{display:flex;gap:6px;align-items:center;justify-content:space-between;margin:6px 0}
-  .tag{font-size:.75rem;color:#a8d7ff;border:1px solid #2b6fa0;background:#0d3553;padding:2px 6px;border-radius:999px}
-
-  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;background:#0f2d4a;border:1px solid #134668;color:#e6f7ff;
-    padding:8px 12px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.35);z-index:10;opacity:0;pointer-events:none;
-    transition:opacity .25s ease, transform .25s ease;}
-  .toast.show{opacity:1;transform:translate(-50%, -6px)}
-  .topbar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px}
-  .linkish{color:#7fdcff;cursor:pointer;text-decoration:underline}
 </style>
 </head>
 <body>
 <header>
-  <h1>Fishly-AI — Click Fishing</h1>
-  <small>POV from the dock • Cast sends a bobber flying • Reel to land fish • Sprites on catch</small>
+  <h1>Fishly-AI — Dock POV Fishing</h1>
+  <small>Cast the bobber • Reel on the green • Upgrade rod • Risk a net • Hunt mythicals</small>
 </header>
 
-<div class="wrap">
-  <div class="topbar">
-    <div class="row">
-      <span class="badge">Coins: <span id="coins">0</span> 💰</span>
-      <span class="badge">Energy: <span id="energy">20</span>/20 ⚡</span>
-      <span class="badge">Rod Lv <span id="rodLv">1</span> 🎣</span>
-      <span class="badge">Bucket <span id="bucketUsed">0</span>/<span id="bucketCap">6</span> 🪣</span>
-      <span class="badge">Bait: <span id="baitTurns">0</span> 🎯</span>
-    </div>
-    <div class="row">
-      <button class="btn alt" id="btnMute" aria-label="Toggle sound">🔊 Sound</button>
-      <span class="linkish" id="btnHow">How to play</span>
-      <span class="linkish" id="btnReset">Reset</span>
-    </div>
-  </div>
+<canvas id="game"></canvas>
 
-  <div class="game">
-    <!-- LEFT: Scene -->
-    <div class="scene" aria-label="Dock POV scene">
-      <div class="skyGlow"></div>
-      <div class="waterBand"></div>
+<!-- Timing meter on dock -->
+<div class="meterWrap" id="meter">
+  <div class="meterSweet" id="sweet"></div>
+  <div class="meterFill" id="fill"></div>
+  <div class="meterLabel" id="meterLabel">Reel inside the sweet zone!</div>
+</div>
 
-      <!-- SVG Rod (foreground, right-hand) -->
-      <div class="rodLayer" aria-hidden="true">
-        <svg viewBox="0 0 420 260" width="100%" height="100%">
-          <!-- rod blank -->
-          <path d="M400,30 Q280,70 200,140 Q140,180 40,210" stroke="#2a2a2a" stroke-width="10" stroke-linecap="round" fill="none"/>
-          <path d="M402,30 Q282,70 202,140 Q142,180 42,210" stroke="#555" stroke-width="4" stroke-linecap="round" fill="none"/>
-          <!-- guides -->
-          <circle cx="350" cy="46" r="6" fill="#111" stroke="#777"/>
-          <circle cx="280" cy="76" r="7" fill="#111" stroke="#777"/>
-          <circle cx="210" cy="122" r="8" fill="#111" stroke="#777"/>
-          <circle cx="130" cy="168" r="9" fill="#111" stroke="#777"/>
-          <!-- reel -->
-          <g transform="translate(380,46)">
-            <circle cx="0" cy="0" r="18" fill="#2b2f33" stroke="#8aa0b3"/>
-            <circle cx="0" cy="0" r="10" fill="#0f1419" stroke="#6f879b"/>
-            <rect x="-8" y="18" width="16" height="40" rx="6" fill="#39414a" stroke="#9fb3c8"/>
-          </g>
-        </svg>
-      </div>
-      <div class="hand" aria-hidden="true"></div>
-
-      <!-- casting line (faint) -->
-      <div class="lineLayer" id="lineLayer"></div>
-
-      <!-- Bobber (created at hand, flies out on cast) -->
-      <div class="bobber" id="bobber" title="bobber"></div>
-
-      <!-- SPRITES SHEET -->
-      <svg width="0" height="0" style="position:absolute">
-        <defs>
-          <symbol id="fish-bluegill" viewBox="0 0 120 60">
-            <ellipse cx="55" cy="30" rx="32" ry="20" fill="#63a46c" stroke="#2c6b35" stroke-width="2"/>
-            <polygon points="20,30 5,22 5,38" fill="#2c6b35"/>
-            <circle cx="72" cy="24" r="3" fill="#111"/>
-            <path d="M38 18 Q55 10 72 18" fill="none" stroke="#88c886" stroke-width="2"/>
-            <path d="M38 42 Q55 50 72 42" fill="none" stroke="#88c886" stroke-width="2"/>
-            <circle cx="70" cy="30" r="2" fill="#fff"/>
-          </symbol>
-          <symbol id="fish-crappie" viewBox="0 0 120 60">
-            <ellipse cx="55" cy="30" rx="34" ry="18" fill="#cfd3d6" stroke="#7a8b93" stroke-width="2"/>
-            <polygon points="20,30 4,22 4,38" fill="#7a8b93"/>
-            <circle cx="72" cy="24" r="3" fill="#111"/>
-            <path d="M30 22 l10 4 l-10 4 l10 4 l-10 4" stroke="#8fa2a9" stroke-width="2"/>
-          </symbol>
-          <symbol id="fish-perch" viewBox="0 0 120 60">
-            <ellipse cx="55" cy="30" rx="32" ry="18" fill="#f2c84b" stroke="#b48a1f" stroke-width="2"/>
-            <polygon points="20,30 6,22 6,38" fill="#b48a1f"/>
-            <rect x="34" y="14" width="6" height="32" fill="#2a4b5f" opacity="0.7"/>
-            <rect x="46" y="14" width="6" height="32" fill="#2a4b5f" opacity="0.7"/>
-            <rect x="58" y="14" width="6" height="32" fill="#2a4b5f" opacity="0.7"/>
-            <circle cx="72" cy="24" r="3" fill="#111"/>
-          </symbol>
-          <symbol id="fish-largemouth" viewBox="0 0 120 60">
-            <ellipse cx="56" cy="30" rx="36" ry="18" fill="#5aa870" stroke="#2d6a43" stroke-width="2"/>
-            <polygon points="20,30 4,22 4,38" fill="#2d6a43"/>
-            <path d="M78 25 q10 5 10 5 q-10 5 -10 5" fill="#fff" opacity=".8"/>
-            <circle cx="75" cy="24" r="3" fill="#111"/>
-            <path d="M35 18 Q56 10 77 18" fill="none" stroke="#86c99b" stroke-width="2"/>
-            <path d="M35 42 Q56 50 77 42" fill="none" stroke="#86c99b" stroke-width="2"/>
-          </symbol>
-          <symbol id="fish-smallmouth" viewBox="0 0 120 60">
-            <ellipse cx="56" cy="30" rx="34" ry="18" fill="#9a7b50" stroke="#5e4a33" stroke-width="2"/>
-            <polygon points="20,30 6,22 6,38" fill="#5e4a33"/>
-            <circle cx="74" cy="24" r="3" fill="#111"/>
-            <path d="M38 18 Q56 12 74 18" stroke="#b8966a" stroke-width="2" fill="none"/>
-            <path d="M38 42 Q56 48 74 42" stroke="#b8966a" stroke-width="2" fill="none"/>
-          </symbol>
-          <symbol id="fish-walleye" viewBox="0 0 120 60">
-            <ellipse cx="60" cy="30" rx="38" ry="16" fill="#9bb17a" stroke="#5b6a47" stroke-width="2"/>
-            <polygon points="24,30 6,22 6,38" fill="#5b6a47"/>
-            <circle cx="80" cy="24" r="3" fill="#fff"/>
-            <circle cx="80" cy="24" r="1.6" fill="#333"/>
-            <path d="M40 20 Q60 12 80 20" stroke="#c4d4ad" stroke-width="2" fill="none"/>
-          </symbol>
-          <symbol id="fish-catfish" viewBox="0 0 120 60">
-            <ellipse cx="58" cy="32" rx="36" ry="14" fill="#9aa3ad" stroke="#55616b" stroke-width="2"/>
-            <polygon points="26,32 8,26 8,38" fill="#55616b"/>
-            <circle cx="78" cy="28" r="3" fill="#212a30"/>
-            <path d="M82 30 q10 3 16 0" stroke="#ced7df" stroke-width="2" fill="none"/>
-            <path d="M82 32 q10 5 16 6" stroke="#ced7df" stroke-width="2" fill="none"/>
-          </symbol>
-          <symbol id="fish-pike" viewBox="0 0 140 60">
-            <ellipse cx="68" cy="30" rx="48" ry="14" fill="#3d6f4d" stroke="#214531" stroke-width="2"/>
-            <polygon points="28,30 6,22 6,38" fill="#214531"/>
-            <circle cx="95" cy="24" r="3" fill="#101"/>
-            <path d="M40 24 l10 4 l-10 4 l10 4 l-10 4" stroke="#7fb391" stroke-width="2"/>
-          </symbol>
-          <symbol id="fish-muskie" viewBox="0 0 150 60">
-            <ellipse cx="72" cy="30" rx="54" ry="14" fill="#4d7f63" stroke="#294c3a" stroke-width="2"/>
-            <polygon points="28,30 6,22 6,38" fill="#294c3a"/>
-            <circle cx="104" cy="24" r="3" fill="#101"/>
-            <path d="M42 24 l10 4 l-10 4 l10 4 l-10 4" stroke="#97c9a8" stroke-width="2"/>
-          </symbol>
-          <symbol id="fish-carp" viewBox="0 0 120 60">
-            <ellipse cx="58" cy="30" rx="36" ry="18" fill="#caa23a" stroke="#8f7422" stroke-width="2"/>
-            <polygon points="22,30 6,22 6,38" fill="#8f7422"/>
-            <circle cx="76" cy="24" r="3" fill="#111"/>
-            <path d="M40 22 q6 6 12 0 q6 6 12 0" stroke="#edd48a" stroke-width="2" fill="none" opacity=".7"/>
-            <path d="M40 36 q6 6 12 0 q6 6 12 0" stroke="#edd48a" stroke-width="2" fill="none" opacity=".7"/>
-          </symbol>
-        </defs>
-      </svg>
-
-      <!-- where catch sprites appear -->
-      <div class="sprite-layer" id="spriteLayer" aria-hidden="true"></div>
-
-      <!-- Controls panel sits on dock edge -->
-      <div style="position:absolute;left:12px;right:12px;bottom:122px">
-        <div class="panel">
-          <h2>Cast & Hook</h2>
-          <div class="row" style="gap:8px;margin-bottom:8px">
-            <button class="btn" id="btnCast">🎣 Cast (-1 ⚡)</button>
-            <button class="btn" id="btnReel" disabled>🌀 Reel</button>
-            <button class="btn danger" id="btnSell">💵 Sell All</button>
-          </div>
-          <div class="meterWrap" aria-label="Timing meter">
-            <div class="meterSweet" id="sweet"></div>
-            <div class="meterFill" id="fill"></div>
-            <div class="meterLabel" id="meterLabel">Tap Reel in the sweet zone!</div>
-          </div>
-          <div class="hint" style="margin-top:6px" id="status">Ready.</div>
-        </div>
-      </div>
-
-      <div class="dockPOV" aria-hidden="true"></div>
-    </div>
-
-    <!-- RIGHT: Inventory & Store -->
-    <div class="panel">
-      <div class="inv">
-        <div class="card">
-          <h3>Inventory</h3>
-          <div class="list" id="invList"></div>
-          <div class="hint">Tip: Better rods widen the sweet zone and increase rare odds.</div>
-        </div>
-        <div class="card store">
-          <h3>Shop</h3>
-          <div class="item">
-            <div>
-              <strong>Rod Upgrade</strong> <span class="tag">+Sweet Zone / +Rare</span><br>
-              <small>Current: Lv <span id="rodLv2">1</span></small>
-            </div>
-            <button class="btn" id="buyRod">Buy (<span class="money" id="rodCost">50</span>)</button>
-          </div>
-          <div class="item">
-            <div>
-              <strong>Bucket Upgrade</strong> <span class="tag">+2 slots</span><br>
-              <small>Cap: <span id="bucketCap2">6</span></small>
-            </div>
-            <button class="btn" id="buyBucket">Buy (<span class="money" id="bucketCost">40</span>)</button>
-          </div>
-          <div class="item">
-            <div>
-              <strong>Premium Bait</strong> <span class="tag">3 casts: +Rare</span>
-            </div>
-            <button class="btn" id="buyBait">Buy (<span class="money">20</span>)</button>
-          </div>
-          <div class="hint">Selling empties your bucket and gives coins. Premium bait stacks in time, not power.</div>
-        </div>
-      </div>
-    </div>
-  </div>
+<!-- Dock HUD -->
+<div class="dockHUD">
+  <span class="badge">Coins: <span id="coins">0</span> 💰</span>
+  <span class="badge">Rod Lv <span id="rodLv">1</span></span>
+  <button class="btn" id="castBtn">🎣 Cast</button>
+  <button class="btn" id="reelBtn" disabled>🌀 Reel</button>
+  <button class="btn alt" id="rodBtn">Upgrade Rod (<span class="money" id="rodCost">50</span>)</button>
+  <button class="btn danger" id="netBtn">Throw Net (200)</button>
+  <button class="btn" id="logBtn">📘 Catch Log</button>
+  <button class="btn alt" id="soundBtn">🔊 Sound</button>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="netText" id="netText">THROWING NET…</div>
+
+<!-- Catch Log -->
+<dialog id="dlgLog"><div class="modal">
+  <h2>Catch Log & Stats</h2>
+  <div class="grid cols-2">
+    <div class="card">
+      <h3>Totals</h3>
+      <div class="stat"><span>Coins earned</span><strong id="logCoins">0</strong></div>
+      <div class="stat"><span>Rod Level</span><strong id="logRod">1</strong></div>
+      <div class="stat"><span>Fish caught (normal)</span><strong id="logFish">0</strong></div>
+      <div class="stat"><span>Mythicals caught</span><strong id="logMyth">0</strong></div>
+      <div class="stat"><span>Nets thrown</span><strong id="logNets">0</strong></div>
+    </div>
+    <div class="card" id="logSpecies"><h3>By Species</h3><div id="speciesList"></div></div>
+  </div>
+  <div class="closeRow"><button class="btn small" onclick="dlgLog.close()">Close</button></div>
+</div></dialog>
+
+<!-- Mythical Minigame -->
+<div class="overlay" id="mythOverlay">
+  <div class="panel">
+    <h2>🔥 You hooked a Mythical! Click fast to reel it in!</h2>
+    <div>Time: <span id="mythTime">6.0</span>s — Power: <span id="mythPower">0%</span></div>
+    <div class="meterQuick"><div class="meterBar" id="mythBar"></div></div>
+    <div><button class="btn" id="mythClick">REEL! 🖱️</button> <button class="btn danger" id="mythSkip">Let it go 😭</button></div>
+  </div>
+</div>
 
 <script>
 /* =========================
-   DATA & STATE
+   CANVAS & SCENE BASICS
 ========================= */
-const FISH = [
-  {n:"Bluegill", r:"common",  w:[0.2, 1.2], v:4,  sprite:"fish-bluegill"},
-  {n:"Crappie",  r:"common",  w:[0.5, 1.8], v:5,  sprite:"fish-crappie"},
-  {n:"Perch",    r:"common",  w:[0.3, 1.5], v:5,  sprite:"fish-perch"},
-  {n:"Largemouth Bass", r:"uncommon", w:[1.0, 6.0], v:12, sprite:"fish-largemouth"},
-  {n:"Smallmouth Bass", r:"uncommon", w:[1.0, 5.0], v:12, sprite:"fish-smallmouth"},
-  {n:"Walleye",  r:"uncommon", w:[1.2, 7.0], v:14, sprite:"fish-walleye"},
-  {n:"Channel Catfish", r:"uncommon", w:[1.5, 10.0], v:15, sprite:"fish-catfish"},
-  {n:"Northern Pike", r:"rare", w:[3.0, 18.0], v:24, sprite:"fish-pike"},
-  {n:"Muskellunge", r:"epic", w:[8.0, 35.0], v:60, sprite:"fish-muskie"},
-  {n:"Common Carp", r:"uncommon", w:[2.0, 18.0], v:10, sprite:"fish-carp"}
-];
-const RARITY_WEIGHT = { common:1.0, uncommon:0.45, rare:0.15, epic:0.05 };
-
-const SFX = {
-  on:true,
-  cast:new Audio('data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAA'), // stubs
-  reel:new Audio('data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAA'),
-  sell:new Audio('data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAA')
-};
-
-const state = {
-  coins: 0, energy: 20, energyMax: 20,
-  rodLv: 1, bucketCap: 6, inv: [],
-  baitTurns: 0,
-  casting: false, t: 0, dir: 1,
-  sweetStart: 0.4, sweetWidth: 0.20,
-  bobberActive: false
-};
-
-const UI = {
-  coins: $('#coins'), energy: $('#energy'),
-  rodLv: $('#rodLv'), rodLv2: $('#rodLv2'),
-  bucketUsed: $('#bucketUsed'), bucketCap: $('#bucketCap'), bucketCap2: $('#bucketCap2'),
-  baitTurns: $('#baitTurns'),
-  btnCast: $('#btnCast'), btnReel: $('#btnReel'), btnSell: $('#btnSell'),
-  fill: $('#fill'), sweet: $('#sweet'), label: $('#meterLabel'), status: $('#status'),
-  invList: $('#invList'), rodCost: $('#rodCost'), bucketCost: $('#bucketCost'),
-  btnRod: $('#buyRod'), btnBucket: $('#buyBucket'), btnBait: $('#buyBait'),
-  toast: $('#toast'), btnMute: $('#btnMute'), btnHow: $('#btnHow'), btnReset: $('#btnReset'),
-  spriteLayer: $('#spriteLayer'),
-  scene: document.querySelector('.scene'),
-  waterBand: document.querySelector('.waterBand'),
-  dock: document.querySelector('.dockPOV'),
-  bobber: document.getElementById('bobber'),
-  lineLayer: document.getElementById('lineLayer')
-};
+const c = document.getElementById('game');
+const ctx = c.getContext('2d');
+function resize(){ c.width = innerWidth; c.height = innerHeight; }
+addEventListener('resize', resize); resize();
 
 /* =========================
-   SAVE / LOAD
+   LIGHT AUDIO (WebAudio)
 ========================= */
-const SAVE_KEY='fishly_click_pov_v1';
-function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch{} }
+let AC = null, soundOn = true;
+function ensureAC(){ if(!AC){ AC = new (window.AudioContext||window.webkitAudioContext)(); } }
+function beep(freq=440, ms=120, gain=0.05){
+  if(!soundOn) return;
+  ensureAC();
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type='sine'; o.frequency.value=freq;
+  g.gain.value=gain;
+  o.connect(g); g.connect(AC.destination);
+  o.start(); o.stop(AC.currentTime + ms/1000);
+}
+function splashSfx(){ beep(220,120,0.04); setTimeout(()=>beep(320,90,0.03),70); }
+function coinSfx(){ beep(660,80,0.05); setTimeout(()=>beep(990,80,0.04),60); }
+function errorSfx(){ beep(160,200,0.06); }
+
+/* =========================
+   STATE & SAVE
+========================= */
+const state = {
+  coins: 0, coinsAllTime: 0,
+  rodLv: 1,
+  casting: false,
+  meterT: Math.random(), meterDir: Math.random()<.5?-1:1,
+  sweetStart: 0.46, sweetWidth: 0.08,
+  bobber: null,
+  wavesTick: 0,
+  sprites: [], ripples: [], lines: [],
+  netAnim: null, netsThrown: 0,
+  // day/night + weather
+  time: 0, // seconds; loop 0..120
+  weather: 'calm', // calm, breezy, overcast
+  // log
+  fishCount: 0,
+  bySpecies: {},
+  mythCount: 0,
+  // mythical event
+  mythicalActive: false,
+  lastHit: {x:0,y:0}
+};
+
+const SAVE_KEY='fishly_pov_save_v4';
+function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify({coins:state.coins, coinsAllTime:state.coinsAllTime, rodLv:state.rodLv, bySpecies:state.bySpecies, fishCount:state.fishCount, mythCount:state.mythCount, netsThrown:state.netsThrown})); }catch{} }
 function load(){
   try{
     const raw = localStorage.getItem(SAVE_KEY); if(!raw) return;
-    const s = JSON.parse(raw); Object.assign(state, s); state.energyMax=20;
+    const s = JSON.parse(raw);
+    Object.assign(state, {coins:s.coins||0, coinsAllTime:s.coinsAllTime||0, rodLv:s.rodLv||1, bySpecies:s.bySpecies||{}, fishCount:s.fishCount||0, mythCount:s.mythCount||0, netsThrown:s.netsThrown||0});
   }catch{}
 }
 load();
 
 /* =========================
-   UTILITIES
+   ECONOMY & FISH TABLES
 ========================= */
-function $(s){ return document.querySelector(s); }
-function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
-function rnd(a,b){ return a + Math.random()*(b-a); }
-function lerp(a,b,t){ return a + (b-a)*t; }
-function easeOutCubic(t){ return 1 - Math.pow(1-t,3); }
-function toast(msg){ UI.toast.textContent=msg; UI.toast.classList.add('show'); setTimeout(()=>UI.toast.classList.remove('show'),1600); }
-function play(a){ if(SFX.on && a && a.play){ try{ a.currentTime=0; a.play(); }catch{} }}
+const FISH = [
+  {n:"Bluegill", r:"common",  v:[3,6],  color:"#63a46c"},
+  {n:"Crappie",  r:"common",  v:[3,7],  color:"#cfd3d6"},
+  {n:"Perch",    r:"common",  v:[4,8],  color:"#f2c84b"},
+  {n:"Largemouth Bass", r:"uncommon", v:[10,20], color:"#5aa870"},
+  {n:"Smallmouth Bass", r:"uncommon", v:[10,22], color:"#9a7b50"},
+  {n:"Walleye",  r:"uncommon", v:[12,24], color:"#9bb17a"},
+  {n:"Channel Catfish", r:"uncommon", v:[10,26], color:"#9aa3ad"},
+  {n:"Northern Pike", r:"rare", v:[20,40], color:"#3d6f4d"},
+  {n:"Muskellunge", r:"epic", v:[40,80], color:"#4d7f63"},
+  {n:"Common Carp", r:"uncommon", v:[8,22], color:"#caa23a"}
+];
+const RARITY_WEIGHT = { common:1.0, uncommon:0.45, rare:0.15, epic:0.05 };
 
-/* =========================
-   SPRITES
-========================= */
-function showCatchSprite(speciesSprite, x, y){
-  const layerRect = UI.spriteLayer.getBoundingClientRect();
-  const nx = x ?? (layerRect.width*0.5);
-  const ny = y ?? (layerRect.height*0.5);
-
-  // splash
-  const splash = document.createElement('div');
-  splash.className = 'splash';
-  splash.style.left = nx+'px'; splash.style.top = ny+'px';
-  UI.spriteLayer.appendChild(splash);
-  setTimeout(()=> splash.remove(), 600);
-
-  const holder = document.createElement('div');
-  holder.className = 'popfish';
-  holder.style.left = nx+'px'; holder.style.top = ny+'px';
-  holder.innerHTML = `<svg width="120" height="60" viewBox="0 0 120 60" aria-hidden="true"><use href="#${speciesSprite}"></use></svg>`;
-  UI.spriteLayer.appendChild(holder);
-  setTimeout(()=> holder.remove(), 1200);
+function weatherBonus(){
+  // overcast slightly boosts predators; breezy boosts walleye/bass; calm is neutral.
+  if(state.weather==='overcast') return {uncommon:+0.08, rare:+0.02};
+  if(state.weather==='breezy')   return {uncommon:+0.06, rare:+0.03};
+  return {uncommon:+0.0, rare:+0.0};
 }
 
+function chooseFish(){
+  const bonus = 0.02*(state.rodLv-1);
+  const wb = weatherBonus();
+  const w = FISH.map(f=>{
+    let base = RARITY_WEIGHT[f.r] || 0.3;
+    if(f.r==='uncommon') base += bonus*0.6 + (wb.uncommon||0);
+    if(f.r==='rare')     base += bonus*0.35 + (wb.rare||0);
+    if(f.r==='epic')     base += bonus*0.2; // small always-on bonus
+    return Math.max(0.01, base);
+  });
+  let sum=w.reduce((a,b)=>a+b,0), pick=Math.random()*sum;
+  for(let i=0;i<FISH.length;i++){ if(pick<w[i]) return FISH[i]; pick-=w[i]; }
+  return FISH[0];
+}
+function rand(a,b){ return a + Math.random()*(b-a); }
+function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
+
 /* =========================
-   RENDER
+   MYTHICALS
 ========================= */
-function recalcSweet(){
-  const base = 0.20, per = 0.02;
-  state.sweetWidth = base + per*(state.rodLv-1);
+const MYTHICALS = [
+  {n:'Unicorn Fish',  min:120, max:300, sprite:'unicorn', color:'#ff6bd6'},
+  {n:'Kitty Fish',    min:80,  max:180, sprite:'kitty',   color:'#ffcc66'},
+  {n:'Cyber Koi',     min:100, max:220, sprite:'cyber',   color:'#66e0ff'},
+  {n:'Ghost Bass',    min:150, max:350, sprite:'ghost',   color:'#c2e9ff'},
+  {n:'Scuba Diver',   min:50,  max:120, sprite:'diver',   color:'#a0b4ff'}, /* funny one */
+  {n:'Rainbow Pike',  min:200, max:500, sprite:'rainbow', color:'#7df3b6'}  /* top tier */
+];
+function pickMyth(){ return MYTHICALS[Math.floor(Math.random()*MYTHICALS.length)]; }
+
+/* =========================
+   UI ELEMENTS
+========================= */
+const UI = {
+  coins: document.getElementById('coins'),
+  rodLv: document.getElementById('rodLv'),
+  castBtn: document.getElementById('castBtn'),
+  reelBtn: document.getElementById('reelBtn'),
+  rodBtn: document.getElementById('rodBtn'),
+  rodCost: document.getElementById('rodCost'),
+  netBtn: document.getElementById('netBtn'),
+  logBtn: document.getElementById('logBtn'),
+  soundBtn: document.getElementById('soundBtn'),
+  meter: document.getElementById('meter'),
+  sweet: document.getElementById('sweet'),
+  fill: document.getElementById('fill'),
+  meterLabel: document.getElementById('meterLabel'),
+  toast: document.getElementById('toast'),
+  netText: document.getElementById('netText'),
+  // log modal
+  dlgLog: document.getElementById('dlgLog'),
+  logCoins: document.getElementById('logCoins'),
+  logRod: document.getElementById('logRod'),
+  logFish: document.getElementById('logFish'),
+  logMyth: document.getElementById('logMyth'),
+  logNets: document.getElementById('logNets'),
+  speciesList: document.getElementById('speciesList'),
+  mythOverlay: document.getElementById('mythOverlay'),
+  mythClick: document.getElementById('mythClick'),
+  mythSkip: document.getElementById('mythSkip'),
+  mythTime: document.getElementById('mythTime'),
+  mythPower: document.getElementById('mythPower'),
+  mythBar: document.getElementById('mythBar')
+};
+
+/* =========================
+   SWEET SPOT (Lv1→Lv100)
+========================= */
+function updateSweetByRodLevel(){
+  const L = clamp(state.rodLv,1,100);
+  const width = 0.08 + (1.00 - 0.08) * ((L-1)/99); // 8% → 100%
+  state.sweetWidth = clamp(width, 0.08, 1.0);
   state.sweetStart = 0.5 - state.sweetWidth/2;
   UI.sweet.style.left = (state.sweetStart*100)+'%';
   UI.sweet.style.width = (state.sweetWidth*100)+'%';
 }
-function render(){
-  UI.coins.textContent = state.coins;
-  UI.energy.textContent = state.energy;
-  UI.rodLv.textContent = state.rodLv; UI.rodLv2.textContent = state.rodLv;
-  UI.bucketCap.textContent = state.bucketCap; UI.bucketCap2.textContent = state.bucketCap;
-  UI.bucketUsed.textContent = state.inv.length;
-  UI.baitTurns.textContent = state.baitTurns;
-  UI.btnCast.disabled = state.casting || state.energy<=0 || state.inv.length>=state.bucketCap;
-  UI.btnReel.disabled = !state.casting;
-  UI.btnSell.disabled = state.inv.length===0;
-
-  const rodC = 50 + (state.rodLv-1)*30;
-  const bucketC = 40 + Math.floor((state.bucketCap-6)/2)*25;
-  UI.rodCost.textContent = rodC;
-  UI.bucketCost.textContent = bucketC;
-  UI.btnRod.disabled = state.coins < rodC || state.rodLv>=10;
-  UI.btnBucket.disabled = state.coins < bucketC || state.bucketCap>=20;
-  UI.btnBait.disabled = state.coins < 20;
-
-  recalcSweet();
-  renderInv();
-}
-function renderInv(){
-  if(!state.inv.length){ UI.invList.innerHTML='<em>Empty bucket.</em>'; return; }
-  UI.invList.innerHTML = state.inv.map(f=>`<div>• ${f.n} — ${f.w.toFixed(2)} lb <span class="tag ${f.r}">${f.r}</span> <span class="money">+$${f.v}</span></div>`).join('');
-}
+updateSweetByRodLevel();
 
 /* =========================
-   CAST ARC + LINE
+   CONTROLS
 ========================= */
-let raf=null, castAnimRaf=null;
-function getHandOrigin(){
-  // approximate tip of rod/reel area for start of cast (right-lower area)
-  const sceneRect = UI.scene.getBoundingClientRect();
-  const startX = sceneRect.width - 70;
-  const startY = sceneRect.height - 160; // above dock
-  return {startX, startY, sceneRect};
-}
-function getRandomTarget(){
-  // target on water band (avoid edges)
-  const bandRect = UI.waterBand.getBoundingClientRect();
-  const sceneRect = UI.scene.getBoundingClientRect();
-  const x = rnd(sceneRect.width*0.20, sceneRect.width*0.80);
-  const y = (bandRect.top - sceneRect.top) + rnd(20, bandRect.height-20);
-  return {x, y};
-}
-function drawLine(x0,y0,x1,y1,opacity=1){
-  const el = document.createElement('div');
-  el.className='line';
-  const dx=x1-x0, dy=y1-y0, len=Math.hypot(dx,dy), ang=Math.atan2(dy,dx)*180/Math.PI;
-  el.style.left = x0+'px'; el.style.top = y0+'px';
-  el.style.width = len+'px'; el.style.transform = `rotate(${ang}deg)`;
-  el.style.opacity = opacity;
-  UI.lineLayer.appendChild(el);
-  setTimeout(()=> el.remove(), 180); // brief trail
-}
-function animateCastBobber(toX, toY, cb){
-  const {startX, startY} = getHandOrigin();
-  const bob = UI.bobber;
-  bob.style.opacity = 1;
-  bob.classList.remove('bob'); // no bob while flying
-  // arc path via quadratic bezier with control point above mid
-  const cx = (startX + toX)/2 + rnd(-40,40);
-  const cy = Math.min(startY, toY) - rnd(80,120); // arch above
-
-  const T = 900; // ms
-  const t0 = performance.now();
-  (function step(now){
-    const t = clamp((now - t0)/T, 0, 1);
-    const e = easeOutCubic(t);
-    const x = (1-e)*(1-e)*startX + 2*(1-e)*e*cx + e*e*toX;
-    const y = (1-e)*(1-e)*startY + 2*(1-e)*e*cy + e*e*toY;
-    bob.style.left = x+'px'; bob.style.top = y+'px'; bob.style.transform='translate(-50%,-50%)';
-    drawLine(startX, startY, x, y, 0.65*(1-t)+0.15);
-    if(t<1){ castAnimRaf = requestAnimationFrame(step); }
-    else { bob.classList.add('bob'); cb && cb(x,y); }
-  })(performance.now());
-}
-
-/* =========================
-   GAME LOOP: CAST / METER
-========================= */
-function choiceWeighted(){
-  const bonusRare = 0.02*(state.rodLv-1) + (state.baitTurns>0 ? 0.08 : 0);
-  const weights = FISH.map(f=>{
-    let w = RARITY_WEIGHT[f.r];
-    if(f.r==='uncommon') w += bonusRare*0.6;
-    if(f.r==='rare')     w += bonusRare*0.35;
-    if(f.r==='epic')     w += bonusRare*0.20;
-    return Math.max(0.01, w);
-  });
-  const sum = weights.reduce((a,b)=>a+b,0);
-  let pick = Math.random()*sum;
-  for(let i=0;i<FISH.length;i++){
-    if(pick<weights[i]) return FISH[i];
-    pick -= weights[i];
-  }
-  return FISH[FISH.length-1];
-}
-
-function startCast(){
-  state.casting = true; state.bobberActive = true;
-  state.energy = Math.max(0, state.energy-1);
-  UI.status.textContent = 'Casting… time your Reel in the sweet zone!';
-  play(SFX.cast);
-
-  // randomize meter sweet spot
-  const jitter = rnd(-0.08, 0.08);
-  state.sweetStart = clamp(0.5 - state.sweetWidth/2 + jitter, 0.05, 0.95-state.sweetWidth);
-  UI.sweet.style.left = (state.sweetStart*100)+'%';
-
-  // bobber: start at hand, fly out
-  const {startX, startY} = getHandOrigin();
-  UI.bobber.style.left = startX+'px'; UI.bobber.style.top = startY+'px'; UI.bobber.style.transform='translate(-50%,-50%)';
-  const tgt = getRandomTarget();
-  animateCastBobber(tgt.x, tgt.y, (bx,by)=> {
-    // landed → keep bobbing
-  });
-
-  // Meter anim
-  state.t = Math.random();
-  state.dir = Math.random()<0.5 ? -1 : 1;
-  function tick(){
-    state.t += state.dir * 0.018 * (1 + (state.rodLv-1)*0.03);
-    if(state.t<=0){ state.t=0; state.dir=1; }
-    if(state.t>=1){ state.t=1; state.dir=-1; }
-    UI.fill.style.width = (state.t*100)+'%';
-    raf = requestAnimationFrame(tick);
-  }
-  cancelAnimationFrame(raf);
-  raf = requestAnimationFrame(tick);
-  render();
-}
-
-function stopCast(success){
-  state.casting = false;
-  cancelAnimationFrame(raf);
-  cancelAnimationFrame(castAnimRaf);
-
-  // hide/remove bobber immediately on reel
-  UI.bobber.classList.remove('bob');
-  UI.bobber.style.opacity = 0;
-  state.bobberActive = false;
-
-  if(success){
-    if(state.inv.length>=state.bucketCap){
-      UI.status.textContent = 'Bucket full! Sell to free space.'; return;
-    }
-    const f = choiceWeighted();
-    const weight = rnd(f.w[0], f.w[1]);
-    const variance = rnd(0.9,1.15);
-    const value = Math.round(f.v * variance + weight*2);
-
-    // add to inv
-    state.inv.push({n:f.n, r:f.r, w:weight, v:value});
-
-    // pop sprite roughly where bobber landed last
-    const layerRect = UI.spriteLayer.getBoundingClientRect();
-    // find last known bobber position relative to sprite layer
-    const bobRect = UI.bobber.getBoundingClientRect();
-    const sceneRect = UI.scene.getBoundingClientRect();
-    const sx = bobRect.left - sceneRect.left;
-    const sy = bobRect.top - sceneRect.top - 120; // spriteLayer starts at top:120
-    const x = clamp(sx, 0, layerRect.width);
-    const y = clamp(sy, 0, layerRect.height);
-    showCatchSprite(f.sprite || 'fish-bluegill', x, y);
-
-    if(state.baitTurns>0) state.baitTurns--;
-    UI.status.textContent = `Hooked a ${f.n}! ${weight.toFixed(2)} lb (+$${value}).`;
-    play(SFX.reel);
-    toast(`+ ${f.n} • ${weight.toFixed(2)} lb • $${value}`);
-  } else {
-    UI.status.textContent = 'Missed it! Try again.';
-  }
-  render();
-}
-
-/* =========================
-   ACTIONS & UI
-========================= */
-UI.btnCast.addEventListener('click', ()=>{
-  if(state.energy<=0){ toast("Out of energy! Sell fish for a breather."); return; }
-  if(state.inv.length>=state.bucketCap){ toast("Bucket full — sell your catch."); return; }
+UI.castBtn.addEventListener('click', ()=>{
+  if(state.casting) return;
   startCast();
 });
-UI.btnReel.addEventListener('click', ()=>{
-  if(!state.casting) return;
-  const x = state.t, s0 = state.sweetStart, s1 = state.sweetStart + state.sweetWidth;
-  stopCast(x>=s0 && x<=s1);
+UI.reelBtn.addEventListener('click', ()=> reelAttempt());
+UI.rodBtn.addEventListener('click', ()=>{
+  const cost = rodCost();
+  if(state.coins < cost){ toast('Not enough coins.'); errorSfx(); return; }
+  if(state.rodLv >= 100){ toast('Rod maxed at Lv100'); return; }
+  state.coins -= cost; state.coinsAllTime += 0; state.rodLv++;
+  updateSweetByRodLevel();
+  toast(`Rod upgraded to Lv ${state.rodLv}!`);
+  coinSfx();
+  renderUI(); save();
 });
-UI.btnSell.addEventListener('click', ()=>{
-  if(!state.inv.length){ toast("Nothing to sell!"); return; }
-  const total = state.inv.reduce((a,b)=>a+b.v,0);
-  state.coins += total; state.inv = [];
-  state.energy = clamp(state.energy+4, 0, state.energyMax);
-  play(SFX.sell);
-  UI.status.textContent = `Sold catch for $${total}. Energy +4.`;
-  render(); save();
-});
-
-UI.btnRod.addEventListener('click', ()=>{
-  const cost = 50 + (state.rodLv-1)*30;
-  if(state.coins<cost) return toast("Not enough coins.");
-  if(state.rodLv>=10) return toast("Rod is maxed!");
-  state.coins -= cost; state.rodLv++;
-  UI.status.textContent = `Upgraded rod to Lv ${state.rodLv}! Wider sweet zone + rarer fish odds.`;
-  render(); save();
-});
-UI.btnBucket.addEventListener('click', ()=>{
-  const cost = 40 + Math.floor((state.bucketCap-6)/2)*25;
-  if(state.coins<cost) return toast("Not enough coins.");
-  if(state.bucketCap>=20) return toast("Bucket at max capacity!");
-  state.coins -= cost; state.bucketCap += 2;
-  UI.status.textContent = `Bucket upgraded to ${state.bucketCap} slots.`;
-  render(); save();
-});
-UI.btnBait.addEventListener('click', ()=>{
-  if(state.coins<20) return toast("Not enough coins.");
-  state.coins -= 20; state.baitTurns += 3;
-  UI.status.textContent = `Premium bait active for ${state.baitTurns} cast(s).`;
-  render(); save();
-});
-
-UI.btnMute.addEventListener('click', ()=>{
-  SFX.on = !SFX.on;
-  UI.btnMute.textContent = SFX.on ? '🔊 Sound' : '🔈 Muted';
-});
-UI.btnHow.addEventListener('click', ()=>{
-  alert(`How to play:
-• You're on a dock holding a rod (POV).
-• Click CAST (uses 1 energy): the bobber flies out and bobs.
-• Click REEL in the green zone to hook a fish. The bobber disappears when reeling.
-• Fish pop up where the bobber was.
-• SELL to earn coins and restore energy.
-• Upgrades: Rod (wider zone + rarer fish), Bucket (+slots), Bait (3 casts with higher rare odds).
-• Autosaves progress. Tight lines!`);
-});
-UI.btnReset.addEventListener('click', ()=>{
-  if(!confirm("Reset progress?")) return;
-  localStorage.removeItem(SAVE_KEY);
-  Object.assign(state, {coins:0, energy:20, energyMax:20, rodLv:1, bucketCap:6, inv:[], baitTurns:0, casting:false,t:0,dir:1, sweetStart:0.4, sweetWidth:0.20, bobberActive:false});
-  UI.bobber.style.opacity=0; UI.bobber.classList.remove('bob');
-  UI.status.textContent = "Progress reset.";
-  render();
+UI.netBtn.addEventListener('click', ()=> throwNet());
+UI.logBtn.addEventListener('click', ()=> openLog());
+UI.soundBtn.addEventListener('click', ()=>{
+  soundOn = !soundOn;
+  UI.soundBtn.textContent = soundOn ? '🔊 Sound' : '🔈 Muted';
+  if(soundOn) beep(880,80,0.04);
 });
 
 /* =========================
-   INIT
+   METER
 ========================= */
-function recalcSweet(){ // redefined above but keep for init scope
-  const base = 0.20, per = 0.02;
-  state.sweetWidth = base + per*(state.rodLv-1);
-  state.sweetStart = 0.5 - state.sweetWidth/2;
+function updateMeter(dt){
+  state.meterT += state.meterDir * (0.6 + 0.02*(state.rodLv-1)) * dt;
+  if(state.meterT<=0){ state.meterT=0; state.meterDir=1; }
+  if(state.meterT>=1){ state.meterT=1; state.meterDir=-1; }
+  UI.fill.style.width = (state.meterT*100)+'%';
+}
+
+/* =========================
+   CAST / REEL LOGIC
+========================= */
+function startCast(){
+  state.casting = true;
+  UI.reelBtn.disabled = false;
+
+  // Chance for mythical minigame trigger upfront (5%)
+  if(Math.random() < 0.05){
+    // still cast bobber for visuals
+    castBobber();
+    setTimeout(()=> startMythicalGame(), 500);
+    return;
+  }
+  castBobber();
+}
+
+function reelAttempt(){
+  if(!state.casting) return;
+  const t = state.meterT;
+  const s0 = state.sweetStart, s1 = state.sweetStart + state.sweetWidth;
+  const hit = (t>=s0 && t<=s1);
+  finishCast(hit);
+}
+
+function finishCast(success){
+  if(state.bobber){ state.bobber.landed=false; state.bobber.fly=0; }
+  state.bobber = null;
+  state.casting = false;
+  UI.reelBtn.disabled = true;
+
+  if(success){
+    const f = chooseFish();
+    const val = Math.round(rand(f.v[0], f.v[1]));
+    state.coins += val; state.coinsAllTime += val; coinSfx();
+    // log
+    state.fishCount++;
+    state.bySpecies[f.n] = (state.bySpecies[f.n]||0)+1;
+
+    spawnFishSprite(state.lastHit.x, state.lastHit.y, f.color);
+    splash(state.lastHit.x, state.lastHit.y);
+    toast(`+1 ${f.n}  (+$${val})`);
+  } else {
+    toast('Missed it! Try again.');
+    errorSfx();
+  }
+  renderUI(); save();
+}
+
+/* =========================
+   BOBBER & CAST ANIM
+========================= */
+function castBobber(){
+  // randomize sweet position on each cast
+  const jitter = (Math.random()*0.2 - 0.1);
+  state.sweetStart = clamp(0.5 - state.sweetWidth/2 + jitter, 0, 1 - state.sweetWidth);
   UI.sweet.style.left = (state.sweetStart*100)+'%';
-  UI.sweet.style.width = (state.sweetWidth*100)+'%';
+
+  // choose random target water point
+  const waterTop = Math.floor(c.height*0.42);
+  const waterBottom = Math.floor(c.height*0.88);
+  const tx = rand(c.width*0.18, c.width*0.82);
+  const ty = rand(waterTop+20, waterBottom-20);
+
+  // start near dock front middle
+  const sx = c.width*0.5;
+  const sy = c.height*0.86;
+
+  state.bobber = {x:sx, y:sy, fly:0, landed:false, tx, ty, cx:(sx+tx)/2 + rand(-80,80), cy:Math.min(sy, ty)-rand(100,160)};
 }
-function renderInv(){ // ensure latest definition used
-  if(!state.inv.length){ UI.invList.innerHTML='<em>Empty bucket.</em>'; return; }
-  UI.invList.innerHTML = state.inv.map(f=>`<div>• ${f.n} — ${f.w.toFixed(2)} lb <span class="tag ${f.r}">${f.r}</span> <span class="money">+$${f.v}</span></div>`).join('');
+
+function animateBobber(dt){
+  const b = state.bobber;
+  if(!b) return;
+
+  if(!b.landed){
+    b.fly = clamp(b.fly + dt*1.4, 0, 1);
+    const t = b.fly;
+    const x = (1-t)*(1-t)*b.x + 2*(1-t)*t*b.cx + t*t*b.tx;
+    const y = (1-t)*(1-t)*b.y + 2*(1-t)*t*b.cy + t*t*b.ty;
+    // cast trail
+    state.lines.push({x0:b.x, y0:b.y, x1:x, y1:y, life:0.18});
+    b.x = x; b.y = y;
+
+    if(t>=1){
+      b.landed = true;
+      state.lastHit.x = b.x; state.lastHit.y = b.y;
+      splash(b.x,b.y); splashSfx();
+    }
+  } else {
+    // gentle bobbing
+    const t = performance.now()/1000;
+    b.y += Math.sin(t*2.6)*0.15;
+  }
 }
-function renderTop(){ render(); }
-function gameInit(){
-  recalcSweet(); renderTop();
-  setInterval(save, 3000);
+
+/* =========================
+   NET GAMBLE
+========================= */
+function throwNet(){
+  if(state.casting) { toast('Finish your cast first.'); return; }
+  if(state.coins < 200){ toast('Need 200 coins for a net.'); errorSfx(); return; }
+  state.coins -= 200; state.netsThrown++; renderUI(); save();
+
+  // choose target
+  const waterTop = Math.floor(c.height*0.42);
+  const waterBottom = Math.floor(c.height*0.88);
+  const x = rand(c.width*0.22, c.width*0.78);
+  const y = rand(waterTop+30, waterBottom-30);
+
+  // animate net ring
+  UI.netText.style.opacity = 1;
+  setTimeout(()=> UI.netText.style.opacity=0, 700);
+  state.netAnim = {x, y, t:0};
+  splash(x,y); splashSfx();
+
+  setTimeout(()=>{
+    const roll = Math.random();
+    let n = 0;
+    if(roll < 0.18) n = Math.floor(rand(0,2.99));      // loss
+    else if(roll < 0.78) n = Math.floor(rand(3,8.99)); // average
+    else n = Math.floor(rand(9,20.99));                // big haul
+
+    let total = 0;
+    for(let i=0;i<n;i++){
+      const f = chooseFish();
+      const val = Math.round(rand(f.v[0], f.v[1]));
+      total += val; state.fishCount++; state.bySpecies[f.n]=(state.bySpecies[f.n]||0)+1;
+      spawnFishSprite(x + rand(-50,50), y + rand(-30,20), f.color);
+    }
+    state.coins += total; state.coinsAllTime += total;
+    if(n===0) { toast('The net came up empty… 😬'); errorSfx(); }
+    else if(total < 200) toast(`Net haul: ${n} fish, only $${total}… (loss)`);
+    else if(total < 350) { toast(`Net haul: ${n} fish, $${total} — not bad!`); coinSfx(); }
+    else { toast(`JACKPOT! Net haul: ${n} fish for $${total}!`); coinSfx(); coinSfx(); }
+    save();
+  }, 850);
 }
-gameInit();
+
+/* =========================
+   SPRITES / SPLASH / DRAW
+========================= */
+function spawnFishSprite(x,y,color){
+  state.sprites.push({x, y, vx: rand(-20,20), vy: -rand(60,100), life:0, maxLife:1.1, color});
+}
+function splash(x,y){
+  for(let i=0;i<3;i++){ state.ripples.push({x, y, r:6+i*3, vr: 70+Math.random()*50, alpha:0.8}); }
+}
+
+/* Mythical sprites (canvas-drawn) */
+function drawMythSprite(kind, x, y, a=1){
+  ctx.save(); ctx.translate(x,y); ctx.globalAlpha = a; ctx.lineWidth=2; ctx.strokeStyle='#172b39';
+  switch(kind){
+    case 'unicorn': // rainbow body + horn
+      const grd = ctx.createLinearGradient(-22,0,22,0);
+      ['#ff6bd6','#ff9a62','#fff94d','#85f78b','#6fd3ff','#a48bff'].forEach((c,i)=>grd.addColorStop(i/5,c));
+      ctx.fillStyle = grd;
+      ctx.beginPath(); ctx.ellipse(0,0,22,12,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(8,-6); ctx.lineTo(18,-18); ctx.lineTo(12,-6); ctx.closePath(); ctx.fillStyle='#fff'; ctx.fill(); ctx.stroke();
+      break;
+    case 'kitty': // fish with cat ears
+      ctx.fillStyle = '#ffcc66';
+      ctx.beginPath(); ctx.ellipse(0,0,22,12,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-6,-10); ctx.lineTo(-2,-18); ctx.lineTo(2,-10); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(6,-10); ctx.lineTo(2,-18); ctx.lineTo(-2,-10); ctx.closePath(); ctx.fill(); ctx.stroke();
+      break;
+    case 'cyber': // neon circuits
+      ctx.fillStyle='#66e0ff';
+      ctx.beginPath(); ctx.ellipse(0,0,22,12,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle='#0ff'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(-10,-2); ctx.lineTo(0,-2); ctx.lineTo(8,-8); ctx.stroke();
+      ctx.beginPath(); ctx.arc(6,0,3,0,Math.PI*2); ctx.stroke();
+      break;
+    case 'ghost': // translucent
+      ctx.globalAlpha = a*0.65;
+      ctx.fillStyle='#c2e9ff';
+      ctx.beginPath(); ctx.ellipse(0,0,22,12,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.globalAlpha = a;
+      break;
+    case 'diver': // tiny diver with bubbles
+      ctx.fillStyle='#2a3c6b';
+      ctx.fillRect(-6,-8,12,16);
+      ctx.fillStyle='#1e2a50'; ctx.fillRect(-10,4,20,6);
+      ctx.fillStyle='#7fb3ff'; ctx.beginPath(); ctx.arc(0,-10,6,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,.8)';
+      [0,1,2].forEach(i=>{ ctx.beginPath(); ctx.arc(10+i*6,-20-i*8,3-i*0.5,0,Math.PI*2); ctx.fill(); });
+      break;
+    case 'rainbow': // rainbow pikey thing
+      const g2 = ctx.createLinearGradient(-26,0,26,0);
+      ['#ff3b3b','#ffa238','#fffb45','#5eff7a','#3bd3ff','#a56bff'].forEach((c,i)=>g2.addColorStop(i/5,c));
+      ctx.fillStyle = g2;
+      ctx.beginPath(); ctx.ellipse(0,0,26,10,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      break;
+  }
+  // tail
+  ctx.beginPath(); ctx.moveTo(-24,0); ctx.lineTo(-36,-8); ctx.lineTo(-36,8); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
+/* =========================
+   DRAW SCENE (day/night + weather)
+========================= */
+function drawScene(dt){
+  // time & weather
+  state.time += dt; if(state.time>120) state.time=0; // 2 min loop full day
+  // simple phases: 0-30 dawn, 30-60 day, 60-90 dusk, 90-120 night
+  const t = state.time, phase = (t<30)?'dawn':(t<60)?'day':(t<90)?'dusk':'night';
+  if(Math.random()<0.001){ state.weather = ['calm','breezy','overcast'][Math.floor(Math.random()*3)]; }
+
+  // Sky gradient per phase
+  const skyH = Math.floor(c.height*0.42);
+  const sky = ctx.createLinearGradient(0,0,0,skyH);
+  if(phase==='day'){ sky.addColorStop(0,'#175d9b'); sky.addColorStop(1,'#0f3f6e'); }
+  else if(phase==='dawn'){ sky.addColorStop(0,'#f09b4f'); sky.addColorStop(1,'#0f3f6e'); }
+  else if(phase==='dusk'){ sky.addColorStop(0,'#a0479e'); sky.addColorStop(1,'#0d2f55'); }
+  else { sky.addColorStop(0,'#081426'); sky.addColorStop(1,'#071a2d'); }
+  ctx.fillStyle = sky; ctx.fillRect(0,0,c.width,skyH);
+
+  // Water gradient
+  const waterTop = skyH;
+  const waterBottom = Math.floor(c.height*0.9);
+  const water = ctx.createLinearGradient(0,waterTop,0,waterBottom);
+  if(phase==='night'){ water.addColorStop(0, '#0f3260'); water.addColorStop(1, '#0a2742'); }
+  else { water.addColorStop(0, '#1e90ff'); water.addColorStop(0.45, '#237ec7'); water.addColorStop(1, '#145a86'); }
+  ctx.fillStyle = water; ctx.fillRect(0,waterTop,c.width,waterBottom-waterTop);
+
+  // Waves
+  state.wavesTick += dt * (state.weather==='breezy' ? 1.5 : 1.0);
+  ctx.save();
+  ctx.globalAlpha = phase==='night' ? 0.12 : 0.18;
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  for(let i=0;i<8;i++){
+    const y = waterTop + (i+1)*(waterBottom-waterTop)/10 + Math.sin(state.wavesTick*0.9 + i)*6;
+    ctx.beginPath();
+    for(let x=0;x<c.width;x+=14){
+      const yy = y + Math.sin((x*0.02) + i + state.wavesTick*1.2)*2.2;
+      if(x===0) ctx.moveTo(x,yy); else ctx.lineTo(x,yy);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Dock
+  const dockTop = waterBottom;
+  ctx.fillStyle = '#6b4a34';
+  ctx.fillRect(0,dockTop,c.width,c.height-dockTop);
+  ctx.strokeStyle = '#5c3f2b'; ctx.lineWidth = 2;
+  for(let x=0;x<c.width;x+=80){ ctx.beginPath(); ctx.moveTo(x,dockTop); ctx.lineTo(x,c.height); ctx.stroke(); }
+  ctx.globalAlpha = .25; ctx.strokeStyle = '#7b583f';
+  for(let i=0;i<10;i++){
+    const yy = dockTop + 14 + i*10;
+    ctx.beginPath(); ctx.moveTo(0,yy);
+    for(let x=0;x<c.width;x+=18){ const off = Math.sin((x+i*21)*0.03 + i)*1.2; ctx.lineTo(x, yy+off); }
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  // Cast trail segments
+  for(let i=state.lines.length-1;i>=0;i--){
+    const seg = state.lines[i];
+    seg.life -= dt;
+    if(seg.life<=0){ state.lines.splice(i,1); continue; }
+    ctx.strokeStyle = `rgba(255,255,255,${0.6*seg.life/0.18})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(seg.x0,seg.y0); ctx.lineTo(seg.x1,seg.y1); ctx.stroke();
+  }
+
+  // Ripples
+  for(let i=state.ripples.length-1;i>=0;i--){
+    const rp = state.ripples[i];
+    rp.r += rp.vr*dt;
+    rp.alpha -= dt*0.8;
+    if(rp.alpha<=0){ state.ripples.splice(i,1); continue; }
+    ctx.strokeStyle = `rgba(255,255,255,${rp.alpha})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(rp.x,rp.y,rp.r,0,Math.PI*2); ctx.stroke();
+  }
+
+  // Bobber
+  if(state.bobber){
+    ctx.beginPath();
+    ctx.arc(state.bobber.x, state.bobber.y, 9, 0, Math.PI*2);
+    ctx.fillStyle = '#ff4757'; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = '#ffffff'; ctx.stroke();
+  }
+
+  // Net anim
+  if(state.netAnim){
+    state.netAnim.t = Math.min(1, (state.netAnim.t + dt*1.6));
+    const t2 = state.netAnim.t, r = 20 + 120*t2;
+    ctx.save();
+    ctx.globalAlpha = 0.25*(1-t2)+0.1;
+    ctx.strokeStyle = '#b3ecff'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(state.netAnim.x, state.netAnim.y, r, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(state.netAnim.x-r, state.netAnim.y); ctx.lineTo(state.netAnim.x+r, state.netAnim.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(state.netAnim.x, state.netAnim.y-r); ctx.lineTo(state.netAnim.x, state.netAnim.y+r); ctx.stroke();
+    ctx.restore();
+    if(t2>=1) state.netAnim = null;
+  }
+
+  // Normal fish sprites
+  for(let i=state.sprites.length-1;i>=0;i--){
+    const sp = state.sprites[i];
+    sp.life += dt; sp.x += sp.vx*dt; sp.y += sp.vy*dt; sp.vy += 50*dt;
+    const a = 1 - (sp.life/sp.maxLife);
+    if(a<=0){ state.sprites.splice(i,1); continue; }
+    ctx.save(); ctx.translate(sp.x, sp.y); ctx.rotate(Math.sin(sp.life*6)*0.15); ctx.globalAlpha = clamp(a,0,1);
+    ctx.fillStyle = sp.color; ctx.strokeStyle = '#172b39'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(0,0,20,10,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-20,0); ctx.lineTo(-32,-8); ctx.lineTo(-32,8); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+
+  // If mythical active, draw a faint silhouette jumping near bobber spot for drama (optional)
+}
+
+/* =========================
+   LOOP
+========================= */
+let last = performance.now();
+function tick(now){
+  const dt = Math.min(0.033, (now-last)/1000); last = now;
+
+  updateMeter(dt);
+  animateBobber(dt);
+  drawScene(dt);
+
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+/* =========================
+   HELPERS / UI
+========================= */
+function toast(msg){
+  UI.toast.textContent = msg;
+  UI.toast.classList.add('show');
+  setTimeout(()=>UI.toast.classList.remove('show'), 1500);
+}
+function rodCost(){ return 50 + Math.floor((state.rodLv-1)*20); }
+function renderUI(){
+  UI.coins.textContent = state.coins;
+  UI.rodLv.textContent = state.rodLv;
+  UI.rodCost.textContent = rodCost();
+}
+
+/* =========================
+   LOG MODAL
+========================= */
+const dlgLog = document.getElementById('dlgLog');
+function openLog(){
+  UI.logCoins.textContent = state.coinsAllTime;
+  UI.logRod.textContent = state.rodLv;
+  UI.logFish.textContent = state.fishCount;
+  UI.logMyth.textContent = state.mythCount;
+  UI.logNets.textContent = state.netsThrown;
+  const rows = Object.entries(state.bySpecies).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="stat"><span>${k}</span><strong>${v}</strong></div>`).join('') || '<em>No catches yet…</em>';
+  UI.speciesList.innerHTML = rows;
+  dlgLog.showModal();
+}
+
+/* =========================
+   MYTHICAL MINIGAME
+========================= */
+let mythTimer = null, mythTimeLeft = 6.0, mythPower = 0, mythTarget = 100, mythPrize = null;
+function startMythicalGame(){
+  if(state.mythicalActive) return;
+  state.mythicalActive = true;
+  mythPrize = pickMyth();
+  mythTimeLeft = 6.0;
+  mythPower = 0; mythTarget = 100; // click to reach 100%
+  UI.mythBar.style.width = '0%';
+  UI.mythTime.textContent = mythTimeLeft.toFixed(1);
+  UI.mythPower.textContent = '0%';
+  UI.mythOverlay.style.display = 'flex';
+  beep(880,120,0.05);
+
+  const tick = ()=>{
+    mythTimeLeft -= 0.1;
+    if(mythTimeLeft<=0){
+      endMyth(false);
+    }else{
+      UI.mythTime.textContent = mythTimeLeft.toFixed(1);
+      mythTimer = setTimeout(tick,100);
+    }
+  };
+  mythTimer = setTimeout(tick,100);
+}
+function endMyth(success){
+  clearTimeout(mythTimer); mythTimer=null;
+  UI.mythOverlay.style.display = 'none';
+  state.mythicalActive = false;
+
+  if(success){
+    const award = Math.round(rand(mythPrize.min, mythPrize.max));
+    state.coins += award; state.coinsAllTime += award; state.mythCount++;
+    spawnMythicalBurst(state.lastHit.x, state.lastHit.y, mythPrize.sprite);
+    toast(`${mythPrize.n} landed! +$${award}`);
+    coinSfx(); coinSfx();
+    save(); renderUI();
+  }else{
+    toast('The mythical slipped away…');
+    errorSfx();
+  }
+}
+UI.mythClick.addEventListener('click', ()=>{
+  if(!state.mythicalActive) return;
+  mythPower += 6 + Math.random()*4; // mash!
+  if(mythPower>100) mythPower=100;
+  UI.mythPower.textContent = Math.round(mythPower)+'%';
+  UI.mythBar.style.width = Math.round(mythPower)+'%';
+  beep(660,40,0.03);
+  if(mythPower>=mythTarget){ endMyth(true); }
+});
+UI.mythSkip.addEventListener('click', ()=> endMyth(false));
+
+function spawnMythicalBurst(x,y,kind){
+  // spawn 3 mythical sprites rising
+  for(let i=0;i<3;i++){
+    mythicalSprites.push({x:x+rand(-20,20), y:y+rand(-8,8), vx:rand(-10,10), vy:-rand(70,110), life:0, maxLife:1.4, kind});
+  }
+}
+const mythicalSprites = [];
+// piggyback draw: append at end of drawScene
+const origDrawScene = drawScene;
+drawScene = function(dt){
+  origDrawScene(dt);
+  // draw mythical sprites
+  for(let i=mythicalSprites.length-1;i>=0;i--){
+    const sp = mythicalSprites[i];
+    sp.life += dt; sp.x += sp.vx*dt; sp.y += sp.vy*dt; sp.vy += 40*dt;
+    const a = 1 - (sp.life/sp.maxLife);
+    if(a<=0){ mythicalSprites.splice(i,1); continue; }
+    drawMythSprite(sp.kind, sp.x, sp.y, clamp(a,0,1));
+  }
+}
+
+/* =========================
+   START
+========================= */
+renderUI();
+toast('Welcome! Cast your line and reel on the green. (5% chance: Mythical minigame!)');
 </script>
 </body>
 </html>
